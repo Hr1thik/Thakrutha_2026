@@ -181,6 +181,11 @@
       if (!currentRecord) return;
       downloadTicketAsImage(currentRecord);
     });
+
+    document.getElementById('downloadPassPdfBtn')?.addEventListener('click', () => {
+      if (!currentRecord) return;
+      downloadTicketAsPdf(currentRecord);
+    });
   });
 
   // Render Pass Card (Handles both PENDING and APPROVED states!)
@@ -299,5 +304,138 @@
     link.click();
   }
 
+  function downloadTicketAsPdf(ticket) {
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+      alert('jsPDF library initializing... Please click again.');
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: [148, 105] // A6 Landscape Pass format
+    });
+
+    const isApproved = ticket.status === 'APPROVED';
+    const code = isApproved ? ticket.ticket_code : ticket.request_code;
+
+    // 1. Dark Emerald Background (#06120E)
+    doc.setFillColor(6, 18, 14);
+    doc.rect(0, 0, 148, 105, 'F');
+
+    // 2. Gold Border (#FFD700)
+    doc.setDrawColor(255, 215, 0);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(4, 4, 140, 97, 3, 3, 'D');
+
+    doc.setLineWidth(0.5);
+    doc.roundedRect(6, 6, 136, 93, 2, 2, 'D');
+
+    // 3. Header Text
+    doc.setTextColor(255, 215, 0); // Kasavu Gold
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.text('THAKRUTHA 2026', 10, 16);
+
+    doc.setTextColor(255, 226, 89);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Grand Onam Celebration | August 23, 2026 (09:00 AM - 07:00 PM)', 10, 21);
+
+    // Divider Line
+    doc.setDrawColor(255, 215, 0);
+    doc.setLineWidth(0.4);
+    doc.line(10, 24, 138, 24);
+
+    // 4. Left Column: Attendee Details
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(7);
+    doc.text('ATTENDEE NAME', 10, 31);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ticket.name, 10, 37);
+
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PASS TYPE & MEAL', 10, 44);
+
+    doc.setTextColor(255, 215, 0);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('THAKRUTHA Stag Pass (100% Veg Sadhya)', 10, 49);
+
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('UPI UTR TRANSACTION REF', 10, 56);
+
+    doc.setTextColor(255, 226, 89);
+    doc.setFontSize(9);
+    doc.setFont('courier', 'bold');
+    doc.text(ticket.utr_number || 'N/A', 10, 61);
+
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PASS STATUS', 10, 68);
+
+    if (isApproved) {
+      doc.setTextColor(74, 222, 128); // Green
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text('APPROVED (VALID FOR GATE ENTRY)', 10, 74);
+    } else {
+      doc.setTextColor(255, 158, 0); // Orange
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PENDING ADMIN VERIFICATION', 10, 74);
+    }
+
+    // 5. Right Column: QR Code Box
+    doc.setFillColor(14, 38, 30);
+    doc.roundedRect(94, 28, 44, 49, 2, 2, 'F');
+    doc.setDrawColor(255, 215, 0);
+    doc.roundedRect(94, 28, 44, 49, 2, 2, 'D');
+
+    doc.setTextColor(255, 215, 0);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PASS CODE', 116, 34, { align: 'center' });
+
+    doc.setFontSize(7.5);
+    doc.setFont('courier', 'bold');
+    doc.text(code, 116, 39, { align: 'center' });
+
+    // Get QR Code Image from Canvas
+    const qrCanvas = document.getElementById('ticketQrCanvas');
+    if (qrCanvas) {
+      const qrDataUrl = qrCanvas.toDataURL('image/png');
+      doc.addImage(qrDataUrl, 'PNG', 99, 41, 34, 34);
+    }
+
+    // 6. Footer Rules & Terms
+    doc.setDrawColor(255, 215, 0);
+    doc.setLineWidth(0.3);
+    doc.line(10, 80, 138, 80);
+
+    doc.setTextColor(220, 220, 220);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VENUE & ENTRY POLICIES:', 10, 85);
+
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
+    doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
+
+    doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+  }
+
   window.renderTicketPass = renderTicketPass;
+  window.downloadTicketAsPdf = downloadTicketAsPdf;
 })();

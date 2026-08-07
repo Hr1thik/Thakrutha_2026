@@ -302,7 +302,7 @@
     if (guestTbody && allTickets) {
       const approvedTickets = allTickets.filter(t => t.status === 'APPROVED');
       if (approvedTickets.length === 0) {
-        guestTbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-muted);">No approved tickets yet.</td></tr>';
+        guestTbody.innerHTML = '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-muted);">No approved tickets yet.</td></tr>';
       } else {
         guestTbody.innerHTML = approvedTickets.map(t => `
           <tr style="border-bottom: 1px solid var(--border-gold);">
@@ -317,9 +317,47 @@
                 ? '<span style="color: #4ADE80; font-weight: 800;">✅ Checked-In</span>' 
                 : '<span style="color: var(--marigold-bright); font-weight: 700;">⏳ Active</span>'}
             </td>
+            <td style="padding: 12px; text-align: center;">
+              <button class="btn btn-outline btn-sm btn-delete-ticket" data-code="${t.ticket_code || t.request_code}" style="color: #EF4444; border-color: #EF4444; padding: 4px 10px; font-size: 0.8rem;">
+                🗑️ Delete
+              </button>
+            </td>
           </tr>
         `).join('');
+
+        document.querySelectorAll('.btn-delete-ticket').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const code = e.currentTarget.getAttribute('data-code');
+            deleteTicket(code);
+          });
+        });
       }
+    }
+  }
+
+  async function deleteTicket(code) {
+    if (!currentAdmin) return;
+    if (!confirm(`Are you sure you want to PERMANENTLY DELETE & REVOKE ticket "${code}"? The attendee will no longer be granted entry.`)) return;
+
+    try {
+      const res = await fetch('/api/admin/delete-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          username: currentAdmin.username,
+          password: currentAdmin.password
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`🗑️ ${data.message}`);
+        reloadDashboardData();
+      } else {
+        alert(`Delete Error: ${data.message}`);
+      }
+    } catch (err) {
+      alert(`Network Error deleting ticket: ${err.message}`);
     }
   }
 
@@ -401,16 +439,16 @@
 
       if (data.success) {
         notice.innerHTML = `
-          <div style="background: #166534; color: #DCFCE7; padding: 12px; border-radius: var(--radius-sm);">
-            ✅ ${data.message}
+          <div style="background: rgba(74, 222, 128, 0.2); border: 2px solid #4ADE80; color: #4ADE80; padding: 16px; border-radius: var(--radius-md); font-size: 1.05rem; text-align: center; font-weight: 800; box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);">
+            🟢 ${data.message}
           </div>
         `;
         input.value = '';
         reloadDashboardData();
       } else {
         notice.innerHTML = `
-          <div style="background: #991B1B; color: #FEE2E2; padding: 12px; border-radius: var(--radius-sm);">
-            🛑 ${data.message}
+          <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #EF4444; color: #FCA5A5; padding: 16px; border-radius: var(--radius-md); font-size: 1.05rem; text-align: center; font-weight: 800; box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);">
+            🔴 ${data.message}
           </div>
         `;
       }

@@ -59,9 +59,14 @@
                 </div>
               </div>
 
-              <button class="btn btn-primary btn-sm view-pass-btn" data-req="${t.request_code}">
-                ${isApproved ? 'View Ticket Pass' : 'View Request Pass'}
-              </button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm view-pass-btn" data-req="${t.request_code}">
+                  ${isApproved ? 'View Ticket Pass' : 'View Request Pass'}
+                </button>
+                <button class="btn btn-outline btn-sm download-pdf-wallet-btn" data-req="${t.request_code}">
+                  📄 PDF
+                </button>
+              </div>
             </div>
           `;
         }).join('');
@@ -74,6 +79,16 @@
               walletModal.classList.remove('active');
               window.renderTicketPass(found);
               document.getElementById('ticketPassModal').classList.add('active');
+            }
+          });
+        });
+
+        document.querySelectorAll('.download-pdf-wallet-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const reqCode = e.currentTarget.getAttribute('data-req');
+            const found = data.tickets.find(tk => tk.request_code === reqCode);
+            if (found && window.downloadTicketAsPdf) {
+              window.downloadTicketAsPdf(found);
             }
           });
         });

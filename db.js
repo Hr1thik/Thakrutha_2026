@@ -573,6 +573,31 @@ async function verifyGateTicket(code, adminUsername) {
   };
 }
 
+async function deleteTicket(code, adminUsername) {
+  const c = (code || '').trim();
+  if (!c) return { success: false, message: 'Ticket code is required' };
+
+  if (useSupabase) {
+    try {
+      await supabaseFetch(`tickets?or=(ticket_code.eq.${encodeURIComponent(c)},request_code.eq.${encodeURIComponent(c)})`, {
+        method: 'DELETE'
+      });
+      return { success: true, message: `Ticket "${c}" permanently deleted by ${adminUsername}.` };
+    } catch (e) {
+      console.error('Supabase deleteTicket error:', e.message);
+      return { success: false, message: 'Failed to delete ticket: ' + e.message };
+    }
+  }
+
+  const stmt = db.prepare("DELETE FROM tickets WHERE ticket_code = ? OR request_code = ?");
+  const info = stmt.run(c, c);
+
+  if (info.changes > 0) {
+    return { success: true, message: `Ticket "${c}" permanently deleted by ${adminUsername}.` };
+  }
+  return { success: false, message: `Ticket "${c}" not found.` };
+}
+
 module.exports = {
   getSetting,
   setSetting,
@@ -586,5 +611,6 @@ module.exports = {
   approvePayment,
   rejectPayment,
   searchTickets,
-  verifyGateTicket
+  verifyGateTicket,
+  deleteTicket
 };

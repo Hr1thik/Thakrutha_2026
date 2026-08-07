@@ -10,9 +10,10 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/animations.css">
 
-  <!-- Lucide Icons & QR Code Generator -->
+  <!-- Lucide Icons, QR Code & jsPDF Generator -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -45,7 +46,6 @@
         <li><a href="#highlights" class="nav-link">Highlights</a></li>
         <li><a href="#rules" class="nav-link">Rules & Policies</a></li>
         <li><a href="#schedule" class="nav-link">Schedule</a></li>
-        <li><a href="#cultural" class="nav-link">Pookkalam & Beats</a></li>
       </ul>
 
       <div class="nav-actions">
@@ -79,7 +79,6 @@
       <li><a href="#highlights" class="mobile-drawer-link">Highlights</a></li>
       <li><a href="#rules" class="mobile-drawer-link">Rules & Policies</a></li>
       <li><a href="#schedule" class="mobile-drawer-link">Schedule</a></li>
-      <li><a href="#cultural" class="mobile-drawer-link">Pookkalam & Beats</a></li>
     </ul>
   </div>
 
@@ -355,64 +354,6 @@
     </div>
   </section>
 
-  <!-- Cultural Extras Section: Virtual Pookkalam & Chendamelam Simulator -->
-  <section class="section-padding" id="cultural" style="background: #040D0A;">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-tag">Interactive Onam Zone</span>
-        <h2 class="section-title">Pookkalam & Rhythm Zone</h2>
-        <p class="section-subtitle">Design your own custom flower carpet or play Chendamelam beats!</p>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-        <!-- Virtual Pookkalam Builder -->
-        <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px; text-align: center; backdrop-filter: blur(12px);">
-          <h3 style="color: var(--gold-light); font-size: 1.5rem; margin-bottom: 16px;">🌸 Virtual Pookkalam Designer</h3>
-          <p style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 24px;">Click flower colors below and tap the canvas to paint concentric Onam flower rings!</p>
-
-          <canvas id="pookkalamCanvas" width="300" height="300" style="background: #040D0A; border-radius: 50%; border: 3px double var(--gold-primary); box-shadow: var(--shadow-gold-glow); cursor: pointer; display: block; margin: 0 auto 24px auto;"></canvas>
-
-          <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button class="btn btn-sm flower-palette-btn" data-color="#FF7A00" style="background: #FF7A00; color: white;">Orange Marigold</button>
-            <button class="btn btn-sm flower-palette-btn" data-color="#FFA000" style="background: #FFA000; color: white;">Yellow Marigold</button>
-            <button class="btn btn-sm flower-palette-btn" data-color="#FFFDF9" style="background: #FFFDF9; color: #333;">Jasmine White</button>
-            <button class="btn btn-sm flower-palette-btn" data-color="#E91E63" style="background: #E91E63; color: white;">Lotus Pink</button>
-          </div>
-
-          <button class="btn btn-outline btn-sm" id="clearPookkalamBtn">
-            Reset Canvas
-          </button>
-        </div>
-
-        <!-- Chendamelam Beat Pad Simulator -->
-        <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px; text-align: center; backdrop-filter: blur(12px);">
-          <h3 style="color: var(--gold-light); font-size: 1.5rem; margin-bottom: 16px;">🥁 Chendamelam Rhythm Pad</h3>
-          <p style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 24px;">Tap the drum pads below to trigger synthesized Kerala Chenda & Ilathalam sounds!</p>
-
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 30px;">
-            <button class="btn drum-pad-btn" id="drumUruttu" style="padding: 32px 16px; background: rgba(6,18,14,0.9); border: 1.5px solid var(--gold-primary); color: var(--gold-primary); font-size: 1.1rem; flex-direction: column;">
-              <i data-lucide="disc" style="width: 32px; height: 32px;"></i>
-              Uruttu Chenda
-              <span style="font-size: 0.75rem; color: var(--text-secondary);">[High Beat]</span>
-            </button>
-
-            <button class="btn drum-pad-btn" id="drumVeekku" style="padding: 32px 16px; background: rgba(6,18,14,0.9); border: 1.5px solid var(--gold-primary); color: var(--gold-primary); font-size: 1.1rem; flex-direction: column;">
-              <i data-lucide="drum" style="width: 32px; height: 32px;"></i>
-              Veekku Chenda
-              <span style="font-size: 0.75rem; color: var(--text-secondary);">[Bass Beat]</span>
-            </button>
-
-            <button class="btn drum-pad-btn" id="drumIlathalam" style="padding: 32px 16px; background: rgba(6,18,14,0.9); border: 1.5px solid var(--gold-primary); color: var(--gold-primary); font-size: 1.1rem; flex-direction: column; grid-column: span 2;">
-              <i data-lucide="bell" style="width: 32px; height: 32px;"></i>
-              Ilathalam Cymbals
-              <span style="font-size: 0.75rem; color: var(--text-secondary);">[Brass Clash Sound]</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -592,12 +533,15 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
-          <button class="btn btn-primary btn-sm" id="downloadPassBtn">
-            <i data-lucide="download"></i> Download Pass (PNG)
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 24px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" id="downloadPassPdfBtn">
+            <i data-lucide="file-text"></i> Download Ticket as PDF
           </button>
-          <button class="btn btn-outline btn-sm" id="closePassBtn">
-            Close Pass
+          <button class="btn btn-outline btn-sm" id="downloadPassBtn">
+            <i data-lucide="download"></i> Download PNG
+          </button>
+          <button class="btn btn-secondary btn-sm" id="closePassBtn">
+            Close
           </button>
         </div>
       </div>
