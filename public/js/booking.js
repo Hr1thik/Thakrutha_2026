@@ -214,8 +214,72 @@
     });
   });
 
+  // Universal Triple-Redundant QR Code Data URL Generator
+  async function generateQrDataUrl(text) {
+    if (!text) return '';
+
+    // 1. Try QRCode.toDataURL (node-qrcode)
+    if (typeof QRCode !== 'undefined' && typeof QRCode.toDataURL === 'function') {
+      try {
+        return await QRCode.toDataURL(text, { width: 300, margin: 1, color: { dark: '#000000', light: '#FFFFFF' } });
+      } catch (e) {}
+    }
+
+    // 2. Try new QRCode(...) (qrcodejs)
+    if (typeof QRCode !== 'undefined' && typeof QRCode === 'function') {
+      try {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.left = '-9999px';
+        div.style.top = '-9999px';
+        document.body.appendChild(div);
+
+        new QRCode(div, {
+          text: text,
+          width: 250,
+          height: 250,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
+        });
+
+        await new Promise(r => setTimeout(r, 60));
+
+        const img = div.querySelector('img');
+        const canvas = div.querySelector('canvas');
+        let dataUrl = '';
+        if (img && img.src && img.src.startsWith('data:image/')) {
+          dataUrl = img.src;
+        } else if (canvas) {
+          dataUrl = canvas.toDataURL('image/png');
+        }
+
+        if (div.parentNode) document.body.removeChild(div);
+        if (dataUrl) return dataUrl;
+      } catch (e) {
+        console.error('qrcodejs error:', e);
+      }
+    }
+
+    // 3. Fallback via QRServer API
+    try {
+      const fetchUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
+      const resp = await fetch(fetchUrl);
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('QR API fallback error:', e);
+    }
+
+    return '';
+  }
+
   // Render Pass Card (Handles both PENDING and APPROVED states!)
-  function renderTicketPass(ticket) {
+  async function renderTicketPass(ticket) {
     const isApproved = ticket.status === 'APPROVED';
 
     document.getElementById('passModalHeading').textContent = isApproved 
@@ -242,20 +306,12 @@
       document.getElementById('qrSubText').textContent = 'Awaiting Verification';
     }
 
-    const qrCanvas = document.getElementById('ticketQrCanvas');
     const qrData = isApproved ? ticket.ticket_code : ticket.request_code;
+    const qrDataUrl = await generateQrDataUrl(qrData);
 
-    if (typeof QRCode !== 'undefined' && qrCanvas) {
-      QRCode.toCanvas(qrCanvas, qrData, {
-        width: 120,
-        margin: 1,
-        color: {
-          dark: isApproved ? '#06120E' : '#E65100',
-          light: '#FFFFFF'
-        }
-      }, function(error) {
-        if (error) console.error(error);
-      });
+    const qrContainer = document.getElementById('qrContainer');
+    if (qrContainer && qrDataUrl) {
+      qrContainer.innerHTML = `<img src="${qrDataUrl}" style="width: 130px; height: 130px; display: block; margin: 0 auto; border-radius: 4px;" alt="QR Code">`;
     }
   }
 
@@ -319,25 +375,17 @@
     ctx.fillText('August 23, 2026 (09:00 AM - 07:00 PM) | Venue Will Be Revealed Soon', 30, 295);
     ctx.fillText('Strictly Stag Only • No Drugs & Alcohol', 30, 320);
 
-    if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
-      try {
-        const qrDataUrl = await QRCode.toDataURL(code, {
-          width: 300,
-          margin: 1,
-          color: { dark: '#000000', light: '#FFFFFF' }
-        });
-        await new Promise(resolve => {
-          const img = new Image();
-          img.onload = function() {
-            ctx.drawImage(img, 440, 100, 130, 130);
-            resolve();
-          };
-          img.onerror = resolve;
-          img.src = qrDataUrl;
-        });
-      } catch (err) {
-        console.error('QR Image error:', err);
-      }
+    const qrDataUrl = await generateQrDataUrl(code);
+    if (qrDataUrl) {
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = function() {
+          ctx.drawImage(img, 440, 100, 130, 130);
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = qrDataUrl;
+      });
     }
 
     const link = document.createElement('a');
@@ -356,18 +404,7 @@
     const isApproved = ticket.status === 'APPROVED';
     const code = isApproved ? ticket.ticket_code : ticket.request_code;
 
-    let qrDataUrl = '';
-    if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
-      try {
-        qrDataUrl = await QRCode.toDataURL(code, {
-          width: 300,
-          margin: 1,
-          color: { dark: '#000000', light: '#FFFFFF' }
-        });
-      } catch (err) {
-        console.error('QR Generation error:', err);
-      }
-    }
+    const qrDataUrl = await generateQrDataUrl(code);
 
     const doc = new jsPDF({
       orientation: 'landscape',
