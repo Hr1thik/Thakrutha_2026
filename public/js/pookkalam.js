@@ -1,4 +1,4 @@
-// Virtual Pookkalam Floral Designer Canvas
+// Virtual Pookkalam Floral Designer Canvas with Touch Support for Mobile
 (function() {
   let currentColor = '#FF7A00';
 
@@ -47,15 +47,23 @@
       });
     });
 
-    // Tap/Click to place flower petal cluster on canvas
+    // Tap/Click to place flower petal cluster on canvas (Desktop Mouse)
     canvas.addEventListener('click', (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-
-      // Draw flower petal cluster
       drawPetalCluster(ctx, x, y, currentColor);
     });
+
+    // Touch support for Mobile Phones
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      drawPetalCluster(ctx, x, y, currentColor);
+    }, { passive: false });
 
     document.getElementById('clearPookkalamBtn')?.addEventListener('click', drawBase);
   });
