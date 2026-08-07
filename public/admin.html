@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/animations.css">
 
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/html5-qrcode@latest"></script>
 </head>
 <body style="background-color: var(--bg-dark); color: var(--text-primary); padding-top: 100px;">
 
@@ -159,10 +160,25 @@
 
     <!-- TAB 3: REGISTERED ATTENDEES & GATE SCANNER -->
     <div id="panelAttendees" style="display: none;">
-      <!-- Gate Scanner Simulator -->
+      <!-- Real-Time Phone Camera Gate Scanner -->
       <div style="background: rgba(6, 18, 14, 0.95); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 32px; box-shadow: var(--shadow-dark);">
-        <h4 style="color: var(--gold-light); font-size: 1.2rem; margin-bottom: 12px;">🎟️ Gate QR Check-In Scanner Simulator</h4>
-        <div style="display: flex; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h4 style="color: var(--gold-light); font-size: 1.3rem; margin-bottom: 4px;">🎟️ Phone Camera Gate QR Scanner</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">Point your phone's camera at an attendee's E-Ticket QR Code to verify entry instantly.</p>
+          </div>
+          <button class="btn btn-primary" id="startCameraBtn">
+            <i data-lucide="camera"></i> <span>📷 Start Phone Camera Scanner</span>
+          </button>
+        </div>
+
+        <!-- Live Camera Viewfinder Box -->
+        <div id="cameraScannerWrapper" style="display: none; max-width: 480px; margin: 0 auto 20px auto; background: #000; border: 2px solid var(--gold-primary); border-radius: var(--radius-md); overflow: hidden; position: relative;">
+          <div id="interactiveCameraReader" style="width: 100%; min-height: 280px;"></div>
+          <button class="btn btn-secondary btn-sm" id="stopCameraBtn" style="position: absolute; top: 10px; right: 10px; z-index: 10;">Stop Camera</button>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 14px;">
           <input type="text" class="form-control" id="scanCodeInput" placeholder="Scan or enter Ticket Code (e.g. TK-2026-8942)...">
           <button class="btn btn-primary" id="verifyScanBtn" style="flex-shrink: 0;">Verify & Grant Entry</button>
         </div>

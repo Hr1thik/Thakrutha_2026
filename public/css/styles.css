@@ -1292,60 +1292,126 @@ img, canvas, svg, video, iframe {
   align-items: start;
 }
 
-/* Mobile Bottom Floating Dock for Phone Browsers */
+/* Mobile Navigation Drawer & Native Floating Dock */
+.mobile-menu-trigger {
+  display: none;
+  background: rgba(14, 38, 30, 0.8);
+  border: 1.5px solid var(--border-gold);
+  color: var(--gold-primary);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+.mobile-menu-drawer {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 280px;
+  height: 100vh;
+  background: rgba(6, 18, 14, 0.96);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-left: 2px solid var(--border-gold-bright);
+  z-index: 2500;
+  padding: 24px;
+  transition: right 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+}
+
+.mobile-menu-drawer.active {
+  right: 0;
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-gold);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.mobile-drawer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mobile-drawer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: block;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
+}
+
+.mobile-drawer-link:hover {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--gold-primary);
+}
+
+/* Floating Native Bottom Dock */
 .mobile-bottom-dock {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 16px;
+  left: 14px;
+  right: 14px;
   z-index: 1050;
-  background: rgba(6, 18, 14, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1.5px solid var(--border-gold);
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) 10px;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+  background: rgba(6, 18, 14, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid var(--border-gold-bright);
+  border-radius: 40px;
+  padding: 6px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 215, 0, 0.25);
 }
 
 .mobile-bottom-dock-inner {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  gap: 8px;
-  max-width: 500px;
-  margin: 0 auto;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .mobile-dock-item {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 4px;
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  height: 46px;
+  border-radius: 30px;
   color: var(--text-primary);
   text-decoration: none;
-  background: rgba(14, 38, 30, 0.8);
-  border: 1px solid var(--border-gold);
-  font-size: 0.72rem;
+  background: transparent;
+  border: none;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mobile-dock-item i {
-  font-size: 1.15rem;
-  margin-bottom: 3px;
+  font-size: 1.1rem;
   color: var(--gold-primary);
 }
 
 .mobile-dock-item.primary {
   background: var(--gold-gradient);
   color: #06120E;
-  border: none;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
+  font-weight: 800;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
 }
 
 .mobile-dock-item.primary i {
@@ -1353,45 +1419,52 @@ img, canvas, svg, video, iframe {
 }
 
 @media (max-width: 768px) {
-  .mobile-bottom-dock {
-    display: block;
-  }
-
-  body {
-    padding-bottom: 75px !important;
-  }
-
-  .navbar-container {
-    height: 62px;
-  }
-
-  .logo-icon {
-    width: 34px;
-    height: 34px;
-    font-size: 1rem;
-  }
-
-  .logo-brand {
-    gap: 8px;
-  }
-
-  .logo-title {
-    font-size: 1.1rem;
+  .nav-menu {
+    display: none !important;
   }
 
   .nav-actions {
-    gap: 4px;
+    display: none !important;
   }
 
-  .nav-actions .btn {
-    padding: 6px 8px !important;
-    font-size: 0.75rem !important;
-    min-height: 36px !important;
-    border-radius: var(--radius-sm) !important;
+  .mobile-menu-trigger {
+    display: flex !important;
   }
 
-  .nav-actions .btn span {
-    font-size: 0.75rem;
+  .mobile-bottom-dock {
+    display: block !important;
+  }
+
+  body {
+    padding-bottom: 85px !important;
+  }
+
+  .navbar-container {
+    height: 60px;
+    padding: 0 16px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .logo-brand {
+    gap: 10px;
+  }
+
+  .logo-title {
+    font-size: 1.25rem;
+  }
+
+  .hero-buttons-group #heroBookBtn {
+    display: none !important; /* Hide redundant hero button on mobile since bottom dock handles instant booking! */
+  }
+
+  .hero-buttons-group {
+    justify-content: center;
   }
 }
+
 

@@ -3,6 +3,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     fetchStats();
     setupNavScroll();
+    setupMobileDrawer();
   });
 
   async function fetchStats() {
@@ -17,6 +18,26 @@
     } catch (err) {
       console.warn('Could not load stats:', err);
     }
+  }
+
+  function setupMobileDrawer() {
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileDrawer = document.getElementById('mobileDrawer');
+    const closeMobileDrawerBtn = document.getElementById('closeMobileDrawerBtn');
+
+    mobileMenuBtn?.addEventListener('click', () => {
+      mobileDrawer?.classList.add('active');
+    });
+
+    closeMobileDrawerBtn?.addEventListener('click', () => {
+      mobileDrawer?.classList.remove('active');
+    });
+
+    document.querySelectorAll('.mobile-drawer-link').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileDrawer?.classList.remove('active');
+      });
+    });
   }
 
   function setupNavScroll() {

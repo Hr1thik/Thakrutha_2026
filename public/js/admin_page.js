@@ -386,6 +386,64 @@
     }
   }
 
+  // Phone Camera Scanner Setup
+  let html5QrScanner = null;
+
+  document.getElementById('startCameraBtn')?.addEventListener('click', startPhoneCameraScanner);
+  document.getElementById('stopCameraBtn')?.addEventListener('click', stopPhoneCameraScanner);
+
+  function startPhoneCameraScanner() {
+    const wrapper = document.getElementById('cameraScannerWrapper');
+    const notice = document.getElementById('scanResultNotice');
+
+    if (!window.Html5Qrcode) {
+      alert('Camera library loading... Please try again in 2 seconds.');
+      return;
+    }
+
+    wrapper.style.display = 'block';
+    notice.innerHTML = '<span style="color: var(--gold-light);">📷 Starting camera... Point camera at E-Ticket QR Code.</span>';
+
+    if (html5QrScanner) {
+      stopPhoneCameraScanner();
+    }
+
+    html5QrScanner = new Html5Qrcode('interactiveCameraReader');
+    const config = { fps: 15, qrbox: { width: 240, height: 240 } };
+
+    html5QrScanner.start(
+      { facingMode: 'environment' }, // Back phone camera!
+      config,
+      (qrCodeText) => {
+        // QR Code Scanned successfully!
+        document.getElementById('scanCodeInput').value = qrCodeText;
+        stopPhoneCameraScanner();
+        verifyScanCode();
+      },
+      (err) => {
+        // Frame parse loop
+      }
+    ).catch(err => {
+      console.warn('Camera start error:', err);
+      wrapper.style.display = 'none';
+      alert('Camera access denied or unavailable. Please enable camera permissions in your phone browser settings.');
+    });
+  }
+
+  function stopPhoneCameraScanner() {
+    const wrapper = document.getElementById('cameraScannerWrapper');
+    if (html5QrScanner) {
+      html5QrScanner.stop().then(() => {
+        html5QrScanner.clear();
+        wrapper.style.display = 'none';
+      }).catch(() => {
+        wrapper.style.display = 'none';
+      });
+    } else {
+      wrapper.style.display = 'none';
+    }
+  }
+
   function exportAttendeesCsv() {
     fetch(`/api/admin/tickets?username=${encodeURIComponent(currentAdmin.username)}&password=${encodeURIComponent(currentAdmin.password)}`)
       .then(res => res.json())
