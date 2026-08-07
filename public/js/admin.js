@@ -20,9 +20,11 @@
     const scanCodeInput = document.getElementById('scanCodeInput');
 
     // Open Admin Modal
-    adminNavBtn?.addEventListener('click', () => {
-      checkExistingSession();
-      adminModal.classList.add('active');
+    ['adminNavBtn', 'dockAdminBtn'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        checkExistingSession();
+        adminModal.classList.add('active');
+      });
     });
 
     document.getElementById('closeAdminModal')?.addEventListener('click', () => {

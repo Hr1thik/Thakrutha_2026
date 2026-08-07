@@ -50,15 +50,15 @@
 
       <div class="nav-actions">
         <button class="btn btn-outline btn-sm" id="walletNavBtn">
-          <i data-lucide="ticket"></i> My Pass
+          <i data-lucide="ticket"></i> <span>My Pass</span>
         </button>
 
         <button class="btn btn-primary btn-sm" id="bookNavBtn">
-          Book Ticket
+          <i data-lucide="sparkles"></i> <span>Book</span>
         </button>
 
-        <button class="btn btn-outline btn-sm" id="adminNavBtn" style="padding: 6px 12px;" title="Organizer Check-In & Approval Dashboard">
-          <i data-lucide="shield-check"></i>
+        <button class="btn btn-outline btn-sm" id="adminNavBtn" title="Organizer Admin Portal">
+          <i data-lucide="shield-check"></i> <span>Admin</span>
         </button>
       </div>
     </div>
@@ -740,6 +740,26 @@
   <script src="js/wallet.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- Mobile Bottom Floating Action Bar for Smartphones -->
+  <div class="mobile-bottom-dock">
+    <div class="mobile-bottom-dock-inner">
+      <button class="mobile-dock-item" id="dockWalletBtn">
+        <i data-lucide="ticket"></i>
+        <span>My Pass</span>
+      </button>
+
+      <button class="mobile-dock-item primary" id="dockBookBtn">
+        <i data-lucide="sparkles"></i>
+        <span>Book Pass</span>
+      </button>
+
+      <button class="mobile-dock-item" id="dockAdminBtn">
+        <i data-lucide="shield-check"></i>
+        <span>Admin Login</span>
+      </button>
+    </div>
+  </div>
 
   <script>
     // Initialize Lucide Icons

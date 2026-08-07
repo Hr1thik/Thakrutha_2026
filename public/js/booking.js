@@ -14,7 +14,7 @@
     const downloadPassBtn = document.getElementById('downloadPassBtn');
 
     // Open booking modal
-    ['bookNavBtn', 'heroBookBtn', 'mainBookPassBtn'].forEach(id => {
+    ['bookNavBtn', 'heroBookBtn', 'mainBookPassBtn', 'dockBookBtn'].forEach(id => {
       document.getElementById(id)?.addEventListener('click', () => {
         resetWizard();
         bookingModal.classList.add('active');

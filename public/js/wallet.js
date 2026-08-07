@@ -7,8 +7,10 @@
     const walletQueryInput = document.getElementById('walletQueryInput');
     const walletResultsArea = document.getElementById('walletResultsArea');
 
-    walletNavBtn?.addEventListener('click', () => {
-      walletModal.classList.add('active');
+    ['walletNavBtn', 'dockWalletBtn'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        walletModal.classList.add('active');
+      });
     });
 
     document.getElementById('closeWalletModal')?.addEventListener('click', () => {
