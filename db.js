@@ -1,16 +1,67 @@
-const { DatabaseSync } = require('node:sqlite');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { DatabaseSync } = require('node:sqlite');
 
-const dbPath = path.join(__dirname, 'thakrutha.db');
-const db = new DatabaseSync(dbPath);
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const useSupabase = Boolean(SUPABASE_URL && SUPABASE_KEY);
+
+let db = null;
+
+if (!useSupabase) {
+  function getWritableDbPath() {
+    if (process.env.VERCEL) {
+      return path.join(os.tmpdir(), 'thakrutha.db');
+    }
+    try {
+      const localPath = path.join(__dirname, 'thakrutha.db');
+      fs.accessSync(__dirname, fs.constants.W_OK);
+      return localPath;
+    } catch (e) {
+      return path.join(os.tmpdir(), 'thakrutha.db');
+    }
+  }
+
+  const dbPath = getWritableDbPath();
+  try {
+    db = new DatabaseSync(dbPath);
+  } catch (err) {
+    console.warn(`Could not open DB at ${dbPath}, trying temp dir:`, err.message);
+    db = new DatabaseSync(path.join(os.tmpdir(), 'thakrutha.db'));
+  }
+}
 
 const ADMIN_USERS = [
-  { username: 'admin1', password: 'Thakrutha2023', name: 'Admin 1 (Primary)' },
-  { username: 'admin2', password: 'Thakrutha2023', name: 'Admin 2 (Gate Manager)' },
-  { username: 'admin3', password: 'Thakrutha2023', name: 'Admin 3 (Finance Manager)' }
+  { username: 'admin1', password: process.env.ADMIN1_PASSWORD || 'Thakrutha2023', name: 'Admin 1 (Primary)' },
+  { username: 'admin2', password: process.env.ADMIN2_PASSWORD || 'Thakrutha2023', name: 'Admin 2 (Gate Manager)' },
+  { username: 'admin3', password: process.env.ADMIN3_PASSWORD || 'Thakrutha2023', name: 'Admin 3 (Finance Manager)' }
 ];
 
+async function supabaseFetch(endpoint, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...(options.headers || {})
+  };
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase Error (${res.status}): ${errText}`);
+  }
+  return res.json();
+}
+
 function initDB() {
+  if (useSupabase) {
+    console.log('⚡ Connected to Supabase Cloud Database:', SUPABASE_URL);
+    return;
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,13 +111,35 @@ function initDB() {
 
 initDB();
 
-function getSetting(key, defaultValue = '') {
+async function getSetting(key, defaultValue = '') {
+  if (useSupabase) {
+    try {
+      const data = await supabaseFetch(`settings?key=eq.${encodeURIComponent(key)}&select=value`);
+      return data.length > 0 ? data[0].value : defaultValue;
+    } catch (e) {
+      console.warn('Supabase getSetting error:', e.message);
+      return defaultValue;
+    }
+  }
   const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
   const res = stmt.get(key);
   return res ? res.value : defaultValue;
 }
 
-function setSetting(key, value) {
+async function setSetting(key, value) {
+  if (useSupabase) {
+    try {
+      await supabaseFetch(`settings`, {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({ key, value })
+      });
+      return;
+    } catch (e) {
+      console.error('Supabase setSetting error:', e.message);
+      throw e;
+    }
+  }
   const stmt = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   stmt.run(key, value);
 }
@@ -88,7 +161,33 @@ function isValidAdmin(username, password) {
 
 const TOTAL_CAPACITY = 500;
 
-function getStats() {
+async function getStats() {
+  if (useSupabase) {
+    try {
+      const approved = await supabaseFetch(`tickets?status=eq.APPROVED&select=id`, { headers: { 'Prefer': 'count=exact' } });
+      const pending = await supabaseFetch(`tickets?status=eq.PENDING&select=id`, { headers: { 'Prefer': 'count=exact' } });
+      const checkedIn = await supabaseFetch(`tickets?status=eq.APPROVED&checked_in=eq.1&select=id`, { headers: { 'Prefer': 'count=exact' } });
+
+      const approvedCount = approved.length;
+      const pendingCount = pending.length;
+      const checkedInCount = checkedIn.length;
+      const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
+      const remainingPercentage = Math.round((ticketsRemaining / TOTAL_CAPACITY) * 100);
+
+      return {
+        totalCapacity: TOTAL_CAPACITY,
+        ticketsBooked: approvedCount,
+        pendingApprovals: pendingCount,
+        ticketsRemaining,
+        remainingPercentage,
+        checkedInCount,
+        totalRevenue: approvedCount * 1100
+      };
+    } catch (e) {
+      console.error('Supabase getStats error:', e.message);
+    }
+  }
+
   const approvedStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'APPROVED'");
   const { count: approvedCount } = approvedStmt.get();
 
@@ -112,59 +211,128 @@ function getStats() {
   };
 }
 
-function submitPaymentRequest({ name, email, phone, emergencyContact, utrNumber }) {
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const requestCode = `REQ-2026-${randomNum}`;
-  const submittedAt = new Date().toISOString();
+function cleanRecord(rec) {
+  if (!rec) return rec;
+  if (Array.isArray(rec)) return rec.map(cleanRecord);
+  const cleaned = { ...rec };
+  for (const key in cleaned) {
+    if (typeof cleaned[key] === 'bigint') {
+      cleaned[key] = Number(cleaned[key]);
+    }
+  }
+  return cleaned;
+}
+
+async function createTicketSubmission({ name, email, phone, emergencyContact, utrNumber }) {
+  const requestCode = `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const now = new Date().toISOString();
+
+  if (useSupabase) {
+    const result = await supabaseFetch(`tickets`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        emergency_contact: emergencyContact,
+        pass_type: 'THAKRUTHA Stag Festival Pass',
+        amount: 1100,
+        request_code: requestCode,
+        utr_number: utrNumber,
+        status: 'PENDING',
+        sadhya_type: '100% Pure Veg',
+        submitted_at: now,
+        created_at: now
+      })
+    });
+    return {
+      success: true,
+      message: 'Payment details submitted successfully! Pending admin approval.',
+      submission: cleanRecord(result[0])
+    };
+  }
 
   const stmt = db.prepare(`
-    INSERT INTO tickets (request_code, ticket_code, name, email, phone, emergency_contact, pass_type, amount, sadhya_type, utr_number, status, checked_in, submitted_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, ?, ?)
+    INSERT INTO tickets (name, email, phone, emergency_contact, pass_type, amount, request_code, ticket_code, utr_number, status, sadhya_type, submitted_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
-    requestCode,
-    requestCode,
-    name.trim(),
-    email.trim(),
-    phone.trim(),
-    emergencyContact.trim(),
+    name,
+    email,
+    phone,
+    emergencyContact,
     'THAKRUTHA Stag Festival Pass',
     1100,
+    requestCode,
+    '',
+    utrNumber,
+    'PENDING',
     '100% Pure Veg',
-    utrNumber.trim(),
-    submittedAt,
-    submittedAt
+    now,
+    now
   );
 
   const getStmt = db.prepare('SELECT * FROM tickets WHERE request_code = ?');
-  return getStmt.get(requestCode);
+  const record = getStmt.get(requestCode);
+
+  return {
+    success: true,
+    message: 'Payment details submitted successfully! Pending admin approval.',
+    submission: cleanRecord(record)
+  };
 }
 
-// Admin Direct Ticket Creation (For Cash / Offline Attendees)
-function createDirectTicket({ name, email, phone, emergencyContact, paymentNotes, adminUsername = 'admin1' }) {
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const requestCode = `REQ-2026-${randomNum}`;
-  const ticketCode = `TK-2026-${randomNum}`;
+async function createDirectTicket({ name, email, phone, emergencyContact, adminUsername }) {
+  const requestCode = `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const ticketCode = `TK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const now = new Date().toISOString();
-  const utrRef = paymentNotes ? `DIRECT: ${paymentNotes.trim()}` : 'DIRECT-CASH-PAYMENT';
+
+  if (useSupabase) {
+    const result = await supabaseFetch(`tickets`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        emergency_contact: emergencyContact,
+        pass_type: 'THAKRUTHA Stag Festival Pass',
+        amount: 1100,
+        request_code: requestCode,
+        ticket_code: ticketCode,
+        utr_number: `DIRECT: Cash Collected (₹1100)`,
+        status: 'APPROVED',
+        sadhya_type: '100% Pure Veg',
+        submitted_at: now,
+        approved_at: now,
+        approved_by: adminUsername,
+        created_at: now
+      })
+    });
+    return {
+      success: true,
+      message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Sent via Email & SMS.`,
+      ticket: result[0]
+    };
+  }
 
   const stmt = db.prepare(`
-    INSERT INTO tickets (request_code, ticket_code, name, email, phone, emergency_contact, pass_type, amount, sadhya_type, utr_number, status, checked_in, submitted_at, approved_at, approved_by, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'APPROVED', 0, ?, ?, ?, ?)
+    INSERT INTO tickets (name, email, phone, emergency_contact, pass_type, amount, request_code, ticket_code, utr_number, status, sadhya_type, submitted_at, approved_at, approved_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
-    requestCode,
-    ticketCode,
-    name.trim(),
-    email.trim(),
-    phone.trim(),
-    emergencyContact.trim(),
+    name,
+    email,
+    phone,
+    emergencyContact,
     'THAKRUTHA Stag Festival Pass',
     1100,
+    requestCode,
+    ticketCode,
+    `DIRECT: Cash Collected (₹1100)`,
+    'APPROVED',
     '100% Pure Veg',
-    utrRef,
     now,
     now,
     adminUsername,
@@ -174,153 +342,189 @@ function createDirectTicket({ name, email, phone, emergencyContact, paymentNotes
   const getStmt = db.prepare('SELECT * FROM tickets WHERE ticket_code = ?');
   const ticket = getStmt.get(ticketCode);
 
-  // Email Notification Dispatch
-  console.log(`
-    📧 =======================================================
-    [EMAIL DISPATCHED TO ATTENDEE (DIRECT ADMIN TICKET)]
-    Issued By Admin: ${adminUsername}
-    To: ${ticket.email} (${ticket.name})
-    Subject: 🎟️ Your Official THAKRUTHA 2026 Ticket (${ticket.ticket_code})
-    Content:
-    Dear ${ticket.name},
-    Your ticket has been directly issued by Admin (${adminUsername})!
-    Official Ticket Code: ${ticket.ticket_code}
-    Payment Note: ${ticket.utr_number}
-    Event Date: August 23, 2026 | Timing: 09:00 AM to 07:00 PM
-    =======================================================
-  `);
-
-  // SMS Notification Dispatch
-  console.log(`
-    📱 =======================================================
-    [SMS DISPATCHED TO REGISTERED PHONE (DIRECT TICKET)]
-    To: +91 ${ticket.phone}
-    Message: Hi ${ticket.name}, your THAKRUTHA 2026 ticket (${ticket.ticket_code}) was issued directly by Admin (${adminUsername})! Event Date: Aug 23, 9 AM - 7 PM. View pass: ${process.env.APP_URL || 'http://localhost:3000'}
-    =======================================================
-  `);
-
   return {
     success: true,
-    message: `Direct Ticket ${ticketCode} created successfully by ${adminUsername}! Sent via Email & SMS to ${ticket.phone}.`,
+    message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Sent via Email & SMS.`,
     ticket
   };
 }
 
-function getPendingPayments() {
+async function getPendingSubmissions() {
+  if (useSupabase) {
+    return cleanRecord(await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`));
+  }
   const stmt = db.prepare("SELECT * FROM tickets WHERE status = 'PENDING' ORDER BY id DESC");
-  return stmt.all();
+  return cleanRecord(stmt.all());
 }
 
-function approvePayment(requestCode, adminUsername = 'admin1') {
-  const checkStmt = db.prepare('SELECT * FROM tickets WHERE request_code = ?');
-  const record = checkStmt.get(requestCode);
-  
-  if (!record) {
-    return { success: false, message: 'Submission request not found.' };
+async function getAllTickets() {
+  if (useSupabase) {
+    return cleanRecord(await supabaseFetch(`tickets?order=id.desc`));
   }
-  if (record.status === 'APPROVED') {
-    return { success: false, message: 'Request is already approved!', ticket: record };
+  const stmt = db.prepare("SELECT * FROM tickets ORDER BY id DESC");
+  return cleanRecord(stmt.all());
+}
+
+async function approvePayment(requestCode, adminUsername) {
+  const ticketCode = `TK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const now = new Date().toISOString();
+
+  if (useSupabase) {
+    const result = await supabaseFetch(`tickets?request_code=eq.${encodeURIComponent(requestCode)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'APPROVED',
+        ticket_code: ticketCode,
+        approved_at: now,
+        approved_by: adminUsername
+      })
+    });
+
+    if (!result || result.length === 0) {
+      return { success: false, message: 'Request code not found' };
+    }
+
+    return {
+      success: true,
+      message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and sent via Email & SMS to ${result[0].phone}.`,
+      ticket: cleanRecord(result[0])
+    };
   }
 
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const ticketCode = `TK-2026-${randomNum}`;
-  const approvedAt = new Date().toISOString();
+  const stmt = db.prepare("SELECT * FROM tickets WHERE request_code = ? AND status = 'PENDING'");
+  const ticket = stmt.get(requestCode);
+
+  if (!ticket) {
+    return { success: false, message: 'Request code not found or already processed.' };
+  }
 
   const updateStmt = db.prepare(`
-    UPDATE tickets
+    UPDATE tickets 
     SET status = 'APPROVED', ticket_code = ?, approved_at = ?, approved_by = ?
     WHERE request_code = ?
   `);
-  updateStmt.run(ticketCode, approvedAt, adminUsername, requestCode);
 
-  const updatedTicket = checkStmt.get(requestCode);
+  updateStmt.run(ticketCode, now, adminUsername, requestCode);
 
-  // Email Notification Dispatch
-  console.log(`
-    📧 =======================================================
-    [EMAIL DISPATCHED TO ATTENDEE]
-    Approved By Admin: ${adminUsername}
-    To: ${updatedTicket.email} (${updatedTicket.name})
-    Subject: 🎟️ Your Official THAKRUTHA 2026 Ticket (${updatedTicket.ticket_code})
-    Content:
-    Dear ${updatedTicket.name},
-    Your UPI payment (UTR: ${updatedTicket.utr_number}) has been APPROVED!
-    Official Ticket Code: ${updatedTicket.ticket_code}
-    Event Date: August 23, 2026
-    Timing: 09:00 AM to 07:00 PM
-    Venue: Venue Will Be Revealed Soon
-    =======================================================
-  `);
-
-  // SMS Notification Dispatch
-  console.log(`
-    📱 =======================================================
-    [SMS DISPATCHED TO REGISTERED PHONE]
-    To: +91 ${updatedTicket.phone}
-    Message: Hi ${updatedTicket.name}, your THAKRUTHA 2026 ticket (${updatedTicket.ticket_code}) is APPROVED! Date: Aug 23, 9 AM - 7 PM. View pass: ${process.env.APP_URL || 'http://localhost:3000'}
-    =======================================================
-  `);
+  const updatedTicket = db.prepare('SELECT * FROM tickets WHERE request_code = ?').get(requestCode);
 
   return {
     success: true,
     message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and sent via Email & SMS to ${updatedTicket.phone}.`,
-    ticket: updatedTicket
+    ticket: cleanRecord(updatedTicket)
   };
 }
 
-function rejectPayment(requestCode, adminUsername = 'admin1', reason = 'UTR Verification Failed') {
-  const stmt = db.prepare("UPDATE tickets SET status = 'REJECTED', approved_by = ? WHERE request_code = ?");
-  stmt.run(adminUsername, requestCode);
-  return { success: true, message: `Request ${requestCode} rejected by ${adminUsername}.` };
-}
+async function rejectPayment(requestCode, adminUsername, reason = 'Invalid UTR Number') {
+  const now = new Date().toISOString();
 
-function getTicketByCodeOrPhone(query) {
-  const q = query.trim().toUpperCase();
-  const stmt = db.prepare(`
-    SELECT * FROM tickets 
-    WHERE UPPER(request_code) = ? 
-       OR UPPER(ticket_code) = ? 
-       OR phone = ? 
-       OR utr_number = ?
-    ORDER BY id DESC
-  `);
-  return stmt.all(q, q, query.trim(), query.trim());
-}
+  if (useSupabase) {
+    const result = await supabaseFetch(`tickets?request_code=eq.${encodeURIComponent(requestCode)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'REJECTED',
+        approved_at: now,
+        approved_by: adminUsername
+      })
+    });
+    return { success: true, message: `Submission ${requestCode} Rejected by ${adminUsername}. Reason: ${reason}` };
+  }
 
-function verifyTicket(code) {
-  const stmt = db.prepare("SELECT * FROM tickets WHERE (UPPER(ticket_code) = UPPER(?) OR UPPER(request_code) = UPPER(?))");
-  const ticket = stmt.get(code.trim(), code.trim());
+  const stmt = db.prepare("SELECT * FROM tickets WHERE request_code = ? AND status = 'PENDING'");
+  const ticket = stmt.get(requestCode);
 
   if (!ticket) {
-    return { success: false, message: 'Invalid Code! No booking found.' };
+    return { success: false, message: 'Request code not found or already processed.' };
   }
-  if (ticket.status !== 'APPROVED') {
-    return { success: false, message: `Ticket is pending admin payment approval! Status: ${ticket.status}` };
+
+  const updateStmt = db.prepare(`
+    UPDATE tickets 
+    SET status = 'REJECTED', approved_at = ?, approved_by = ?
+    WHERE request_code = ?
+  `);
+
+  updateStmt.run(now, adminUsername, requestCode);
+
+  return {
+    success: true,
+    message: `Submission ${requestCode} Rejected by ${adminUsername}. Reason: ${reason}`
+  };
+}
+
+async function searchTickets(query) {
+  const q = (query || '').trim();
+  if (!q) return [];
+
+  if (useSupabase) {
+    try {
+      return await supabaseFetch(`tickets?or=(phone.ilike.*${encodeURIComponent(q)}*,request_code.ilike.*${encodeURIComponent(q)}*,ticket_code.ilike.*${encodeURIComponent(q)}*,utr_number.ilike.*${encodeURIComponent(q)}*)&order=id.desc`);
+    } catch (e) {
+      console.error('Supabase searchTickets error:', e.message);
+      return [];
+    }
   }
-  if (ticket.checked_in === 1) {
+
+  const stmt = db.prepare(`
+    SELECT * FROM tickets 
+    WHERE phone LIKE ? OR request_code LIKE ? OR ticket_code LIKE ? OR utr_number LIKE ?
+    ORDER BY id DESC
+  `);
+  const searchTerm = `%${q}%`;
+  return stmt.all(searchTerm, searchTerm, searchTerm, searchTerm);
+}
+
+async function verifyGateTicket(code, adminUsername) {
+  const c = (code || '').trim();
+  const now = new Date().toISOString();
+
+  if (useSupabase) {
+    const records = await supabaseFetch(`tickets?or=(ticket_code.eq.${encodeURIComponent(c)},request_code.eq.${encodeURIComponent(c)})`);
+    if (records.length === 0) {
+      return { success: false, message: `Invalid Code: "${c}". No ticket found.` };
+    }
+    const ticket = records[0];
+    if (ticket.status !== 'APPROVED') {
+      return { success: false, message: `Entry Denied! Payment for "${c}" is ${ticket.status}.` };
+    }
+    if (ticket.checked_in === 1) {
+      return { success: false, message: `ALREADY CHECKED IN! Ticket "${c}" was used at ${ticket.check_in_time}.` };
+    }
+
+    await supabaseFetch(`tickets?id=eq.${ticket.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ checked_in: 1, check_in_time: now })
+    });
+
     return {
-      success: false,
-      alreadyCheckedIn: true,
-      message: `Ticket ${ticket.ticket_code} was ALREADY checked in on ${ticket.check_in_time}.`,
-      ticket
+      success: true,
+      message: `ENTRY GRANTED! Verified Attendee: ${ticket.name} (${ticket.ticket_code}). Gate verified by ${adminUsername}.`,
+      ticket: { ...ticket, checked_in: 1, check_in_time: now }
     };
   }
 
-  const checkInTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  const updateStmt = db.prepare('UPDATE tickets SET checked_in = 1, check_in_time = ? WHERE id = ?');
-  updateStmt.run(checkInTime, ticket.id);
+  const stmt = db.prepare("SELECT * FROM tickets WHERE ticket_code = ? OR request_code = ?");
+  const ticket = stmt.get(c, c);
 
-  const updatedTicket = stmt.get(code.trim(), code.trim());
+  if (!ticket) {
+    return { success: false, message: `Invalid Code: "${c}". No ticket found.` };
+  }
+
+  if (ticket.status !== 'APPROVED') {
+    return { success: false, message: `Entry Denied! Payment for "${c}" is ${ticket.status}.` };
+  }
+
+  if (ticket.checked_in === 1) {
+    return { success: false, message: `ALREADY CHECKED IN! Ticket "${c}" was used at ${ticket.check_in_time}.` };
+  }
+
+  const checkInStmt = db.prepare("UPDATE tickets SET checked_in = 1, check_in_time = ? WHERE id = ?");
+  checkInStmt.run(now, ticket.id);
+
   return {
     success: true,
-    message: `Entry Granted! Ticket ${ticket.ticket_code} for ${ticket.name} successfully checked in.`,
-    ticket: updatedTicket
+    message: `ENTRY GRANTED! Verified Attendee: ${ticket.name} (${ticket.ticket_code}). Gate verified by ${adminUsername}.`,
+    ticket: { ...ticket, checked_in: 1, check_in_time: now }
   };
-}
-
-function getAllTickets() {
-  const stmt = db.prepare('SELECT * FROM tickets ORDER BY id DESC');
-  return stmt.all();
 }
 
 module.exports = {
@@ -329,12 +533,12 @@ module.exports = {
   authenticateAdmin,
   isValidAdmin,
   getStats,
-  submitPaymentRequest,
+  createTicketSubmission,
   createDirectTicket,
-  getPendingPayments,
+  getPendingSubmissions,
+  getAllTickets,
   approvePayment,
   rejectPayment,
-  getTicketByCodeOrPhone,
-  verifyTicket,
-  getAllTickets
+  searchTickets,
+  verifyGateTicket
 };

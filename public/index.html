@@ -527,12 +527,12 @@
               <small style="color: var(--text-muted); display: block; margin-top: 6px;">Check your GPay / PhonePe / Paytm transaction receipt for the 12-digit UTR/Ref number.</small>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-              <button type="button" class="btn btn-outline" id="btnBackToStep1" style="flex: 1;">
-                <i data-lucide="arrow-left"></i> Back
-              </button>
-              <button type="submit" class="btn btn-primary" style="flex: 2;">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px;">
+              <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 14px; min-height: 48px;">
                 Submit Payment for Admin Approval <i data-lucide="check-circle"></i>
+              </button>
+              <button type="button" class="btn btn-outline" id="btnBackToStep1" style="width: 100%; justify-content: center; padding: 12px; min-height: 44px;">
+                <i data-lucide="arrow-left"></i> Back to Attendee Details
               </button>
             </div>
           </div>
@@ -610,9 +610,9 @@
       <div class="modal-body">
         <p style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 20px;">Enter your phone number, Ticket Code (TK-2026-XXXX), Request Code (REQ-2026-XXXX), or UTR number.</p>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+        <div class="search-input-group">
           <input type="text" class="form-control" id="walletQueryInput" placeholder="Phone, Ticket Code, or UTR...">
-          <button class="btn btn-primary" id="searchWalletBtn" style="flex-shrink: 0;">Search</button>
+          <button class="btn btn-primary" id="searchWalletBtn">Search Pass</button>
         </div>
 
         <div id="walletResultsArea">
@@ -643,16 +643,12 @@
 
             <div class="form-group" style="text-align: left;">
               <label class="form-label" for="adminPasswordInput">Password *</label>
-              <input type="password" class="form-control" id="adminPasswordInput" placeholder="Thakrutha2023">
+              <input type="password" class="form-control" id="adminPasswordInput" placeholder="Enter Password">
             </div>
 
             <button class="btn btn-primary" id="authAdminBtn" style="width: 100%; margin-top: 10px; padding: 14px;">
               <i data-lucide="lock"></i> Login to Dashboard
             </button>
-
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 14px;">
-              Valid Logins: <strong>admin1</strong>, <strong>admin2</strong>, <strong>admin3</strong> (Pass: <code>Thakrutha2023</code>)
-            </div>
           </div>
         </div>
 

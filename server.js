@@ -18,7 +18,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
   const pathname = url.pathname;
 
   // --- REST API ENDPOINTS ---
@@ -55,18 +55,28 @@ const server = http.createServer((req, res) => {
 
     // 2. Settings (UPI ID & QR Code Image URL)
     if (pathname === '/api/settings' && req.method === 'GET') {
-      res.writeHead(200);
-      res.end(JSON.stringify({
-        upiQrUrl: db.getSetting('upi_qr_url', 'images/upi_qr.png'),
-        upiId: db.getSetting('upi_id', 'thakrutha@upi')
-      }));
+      try {
+        const upiQrUrl = await db.getSetting('upi_qr_url', 'images/upi_qr.png');
+        const upiId = await db.getSetting('upi_id', 'thakrutha@upi');
+        res.writeHead(200);
+        res.end(JSON.stringify({ upiQrUrl, upiId }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      }
       return;
     }
 
     // 3. Stats
     if (pathname === '/api/stats' && req.method === 'GET') {
-      res.writeHead(200);
-      res.end(JSON.stringify(db.getStats()));
+      try {
+        const stats = await db.getStats();
+        res.writeHead(200);
+        res.end(JSON.stringify(stats));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      }
       return;
     }
 
@@ -98,9 +108,9 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/admin/create-ticket' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
-          const { name, email, phone, emergencyContact, paymentNotes, username, password } = JSON.parse(body);
+          const { name, email, phone, emergencyContact, username, password } = JSON.parse(body);
 
           if (!db.isValidAdmin(username, password)) {
             res.writeHead(403);
@@ -114,12 +124,11 @@ const server = http.createServer((req, res) => {
             return;
           }
 
-          const result = db.createDirectTicket({
+          const result = await db.createDirectTicket({
             name,
             email,
             phone,
             emergencyContact,
-            paymentNotes,
             adminUsername: username
           });
 
@@ -138,7 +147,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/admin/update-qr' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const { username, password, upiId, qrBase64 } = JSON.parse(body);
 
@@ -149,23 +158,29 @@ const server = http.createServer((req, res) => {
           }
 
           if (upiId) {
-            db.setSetting('upi_id', upiId.trim());
+            await db.setSetting('upi_id', upiId.trim());
           }
 
           if (qrBase64) {
             const base64Data = qrBase64.replace(/^data:image\/\w+;base64,/, '');
             const filePath = path.join(PUBLIC_DIR, 'images', 'custom_upi_qr.png');
-            fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
-
-            db.setSetting('upi_qr_url', 'images/custom_upi_qr.png?v=' + Date.now());
+            try {
+              fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+              await db.setSetting('upi_qr_url', 'images/custom_upi_qr.png?v=' + Date.now());
+            } catch (e) {
+              await db.setSetting('upi_qr_url', qrBase64);
+            }
           }
+
+          const upiQrUrl = await db.getSetting('upi_qr_url');
+          const activeUpiId = await db.getSetting('upi_id');
 
           res.writeHead(200);
           res.end(JSON.stringify({
             success: true,
             message: 'UPI QR Code & ID updated successfully!',
-            upiQrUrl: db.getSetting('upi_qr_url'),
-            upiId: db.getSetting('upi_id')
+            upiQrUrl,
+            upiId: activeUpiId
           }));
 
         } catch (err) {
@@ -180,7 +195,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/tickets/submit-payment' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const data = JSON.parse(body);
 
@@ -202,16 +217,13 @@ const server = http.createServer((req, res) => {
             return;
           }
 
-          const record = db.submitPaymentRequest(data);
+          const result = await db.createTicketSubmission(data);
           res.writeHead(201);
-          res.end(JSON.stringify({
-            success: true,
-            message: 'UPI Payment reference submitted! Your ticket will be issued upon Admin verification.',
-            record
-          }));
+          res.end(JSON.stringify(result));
         } catch (err) {
+          console.error("submit-payment ERROR:", err);
           res.writeHead(500);
-          res.end(JSON.stringify({ error: 'Server error submitting payment: ' + err.message }));
+          res.end(JSON.stringify({ error: 'Server error submitting payment: ' + err.message, stack: err.stack }));
         }
       });
       return;
@@ -227,8 +239,15 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: 'Unauthorized Admin Credentials.' }));
         return;
       }
-      res.writeHead(200);
-      res.end(JSON.stringify({ pending: db.getPendingPayments(), stats: db.getStats() }));
+      try {
+        const pending = await db.getPendingSubmissions();
+        const stats = await db.getStats();
+        res.writeHead(200);
+        res.end(JSON.stringify({ pending, stats }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      }
       return;
     }
 
@@ -236,7 +255,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/admin/approve-payment' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const { requestCode, username, password } = JSON.parse(body);
           if (!db.isValidAdmin(username, password)) {
@@ -245,7 +264,7 @@ const server = http.createServer((req, res) => {
             return;
           }
 
-          const result = db.approvePayment(requestCode, username);
+          const result = await db.approvePayment(requestCode, username);
           res.writeHead(200);
           res.end(JSON.stringify(result));
         } catch (err) {
@@ -260,7 +279,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/admin/reject-payment' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const { requestCode, username, password, reason } = JSON.parse(body);
           if (!db.isValidAdmin(username, password)) {
@@ -269,7 +288,7 @@ const server = http.createServer((req, res) => {
             return;
           }
 
-          const result = db.rejectPayment(requestCode, username, reason);
+          const result = await db.rejectPayment(requestCode, username, reason);
           res.writeHead(200);
           res.end(JSON.stringify(result));
         } catch (err) {
@@ -284,9 +303,14 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/tickets/lookup' && req.method === 'GET') {
       const q = url.searchParams.get('q') || url.searchParams.get('code') || url.searchParams.get('phone');
       if (q) {
-        const tickets = db.getTicketByCodeOrPhone(q);
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true, tickets }));
+        try {
+          const tickets = await db.searchTickets(q);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, tickets }));
+        } catch (e) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: e.message }));
+        }
       } else {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Search parameter q is required.' }));
@@ -298,7 +322,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/admin/verify' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const { code, username, password } = JSON.parse(body);
           if (!db.isValidAdmin(username, password)) {
@@ -306,7 +330,7 @@ const server = http.createServer((req, res) => {
             res.end(JSON.stringify({ success: false, message: 'Invalid Admin Credentials!' }));
             return;
           }
-          const result = db.verifyTicket(code);
+          const result = await db.verifyGateTicket(code, username);
           res.writeHead(200);
           res.end(JSON.stringify(result));
         } catch (err) {
@@ -327,8 +351,15 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: 'Unauthorized Credentials.' }));
         return;
       }
-      res.writeHead(200);
-      res.end(JSON.stringify({ tickets: db.getAllTickets(), stats: db.getStats() }));
+      try {
+        const tickets = await db.getAllTickets();
+        const stats = await db.getStats();
+        res.writeHead(200);
+        res.end(JSON.stringify({ tickets, stats }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      }
       return;
     }
 
