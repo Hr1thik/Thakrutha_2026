@@ -318,16 +318,35 @@
     ctx.fillText('August 23, 2026 (09:00 AM - 07:00 PM) | Venue Will Be Revealed Soon', 30, 295);
     ctx.fillText('Strictly Stag Only • No Drugs & Alcohol', 30, 320);
 
-    // Draw QR Code canvas
-    const qrCanvas = document.getElementById('ticketQrCanvas');
-    if (qrCanvas) {
-      ctx.drawImage(qrCanvas, 440, 100, 130, 130);
+    const code = isApproved ? ticket.ticket_code : ticket.request_code;
+
+    function finishPngDownload() {
+      const link = document.createElement('a');
+      link.download = `THAKRUTHA_Pass_${code}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     }
 
-    const link = document.createElement('a');
-    link.download = `THAKRUTHA_Pass_${isApproved ? ticket.ticket_code : ticket.request_code}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    if (typeof QRCode !== 'undefined') {
+      QRCode.toDataURL(code, {
+        width: 300,
+        margin: 1,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      }, function(err, qrDataUrl) {
+        if (!err && qrDataUrl) {
+          const qrImg = new Image();
+          qrImg.onload = function() {
+            ctx.drawImage(qrImg, 440, 100, 130, 130);
+            finishPngDownload();
+          };
+          qrImg.src = qrDataUrl;
+        } else {
+          finishPngDownload();
+        }
+      });
+    } else {
+      finishPngDownload();
+    }
   }
 
   function downloadTicketAsPdf(ticket) {
@@ -436,30 +455,41 @@
     doc.setFont('courier', 'bold');
     doc.text(code, 116, 39, { align: 'center' });
 
-    // Get QR Code Image from Canvas
-    const qrCanvas = document.getElementById('ticketQrCanvas');
-    if (qrCanvas) {
-      const qrDataUrl = qrCanvas.toDataURL('image/png');
-      doc.addImage(qrDataUrl, 'PNG', 99, 41, 34, 34);
+    function finishPdfSave() {
+      // 6. Footer Rules & Terms
+      doc.setDrawColor(255, 215, 0);
+      doc.setLineWidth(0.3);
+      doc.line(10, 80, 138, 80);
+
+      doc.setTextColor(220, 220, 220);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('VENUE & ENTRY POLICIES:', 10, 85);
+
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(180, 180, 180);
+      doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
+      doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
+
+      doc.save(`THAKRUTHA_Pass_${code}.pdf`);
     }
 
-    // 6. Footer Rules & Terms
-    doc.setDrawColor(255, 215, 0);
-    doc.setLineWidth(0.3);
-    doc.line(10, 80, 138, 80);
-
-    doc.setTextColor(220, 220, 220);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.text('VENUE & ENTRY POLICIES:', 10, 85);
-
-    doc.setFontSize(6.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(180, 180, 180);
-    doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
-    doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
-
-    doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+    // Generate QR Code Image Data URL directly for PDF
+    if (typeof QRCode !== 'undefined') {
+      QRCode.toDataURL(code, {
+        width: 300,
+        margin: 1,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      }, function(err, qrDataUrl) {
+        if (!err && qrDataUrl) {
+          doc.addImage(qrDataUrl, 'PNG', 99, 41, 34, 34);
+        }
+        finishPdfSave();
+      });
+    } else {
+      finishPdfSave();
+    }
   }
 
   window.renderTicketPass = renderTicketPass;
