@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THAKRUTHA Admin Portal | Organizer Dashboard</title>
+  
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="background-color: var(--bg-dark); color: var(--text-primary); padding-top: 100px;">
+
+  <!-- Admin Header / Navbar -->
+  <header class="navbar">
+    <div class="container navbar-container">
+      <a href="/" class="logo-brand">
+        <div class="logo-icon">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-title">THAKRUTHA</span>
+          <span class="logo-subtitle">Organizer Admin Portal</span>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid var(--border-gold); padding: 8px 16px; border-radius: var(--radius-full); font-size: 0.88rem; font-weight: 700; color: var(--gold-light);">
+          👤 Logged in as: <span id="adminSessionName" style="color: var(--gold-primary); font-family: monospace;">admin1</span>
+        </div>
+
+        <button class="btn btn-outline btn-sm" id="adminLogoutPageBtn">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Admin Container -->
+  <div class="container" style="padding-bottom: 80px;">
+    
+    <!-- Top Summary Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 36px;">
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); padding: 22px; border-radius: var(--radius-lg); text-align: center; backdrop-filter: blur(12px);">
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Approved Passes</div>
+        <div style="font-size: 2.2rem; font-weight: 900; color: #FFF; font-family: 'Playfair Display', serif;" id="admBooked">0</div>
+      </div>
+
+      <div style="background: rgba(255, 107, 0, 0.12); border: 1.5px solid var(--marigold-orange); padding: 22px; border-radius: var(--radius-lg); text-align: center; backdrop-filter: blur(12px);">
+        <div style="font-size: 0.82rem; color: var(--marigold-bright); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Pending Approvals</div>
+        <div style="font-size: 2.2rem; font-weight: 900; color: var(--marigold-bright); font-family: 'Playfair Display', serif;" id="admPendingCount">0</div>
+      </div>
+
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); padding: 22px; border-radius: var(--radius-lg); text-align: center; backdrop-filter: blur(12px);">
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Checked-In Attendees</div>
+        <div style="font-size: 2.2rem; font-weight: 900; color: #4ADE80; font-family: 'Playfair Display', serif;" id="admCheckedIn">0</div>
+      </div>
+
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); padding: 22px; border-radius: var(--radius-lg); text-align: center; backdrop-filter: blur(12px);">
+        <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Total Revenue</div>
+        <div style="font-size: 2.2rem; font-weight: 900; color: var(--gold-primary); font-family: 'Playfair Display', serif;" id="admRevenue">₹0</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div style="display: flex; gap: 16px; margin-bottom: 28px; border-bottom: 1.5px solid var(--border-gold); padding-bottom: 16px;">
+      <button class="btn btn-primary admin-tab-btn active" id="tabPendingBtn">
+        ⏳ Pending Payment Approvals (<span id="tabPendingBadge">0</span>)
+      </button>
+      <button class="btn btn-outline admin-tab-btn" id="tabQrManagerBtn">
+        🖼️ Payment UPI QR Manager
+      </button>
+      <button class="btn btn-outline admin-tab-btn" id="tabAttendeesBtn">
+        📊 Registered Attendees & Gate Scanner
+      </button>
+      <button class="btn btn-outline admin-tab-btn" id="tabCreateTicketBtn">
+        ➕ Issue Direct / Cash Ticket
+      </button>
+    </div>
+
+    <!-- TAB 1: PENDING PAYMENT APPROVALS -->
+    <div id="panelPendingApprovals">
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px; backdrop-filter: blur(12px); box-shadow: var(--shadow-dark);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div>
+            <h3 style="font-size: 1.5rem; color: #FFF;">Pending UPI Payment Approvals</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">Cross-check attendee 12-digit UTR numbers with your bank account before approving.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="refreshPendingBtn">
+            <i data-lucide="refresh-cw"></i> Refresh List
+          </button>
+        </div>
+
+        <div style="overflow-x: auto; border: 1px solid var(--border-gold); border-radius: var(--radius-md);">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem; text-align: left;">
+            <thead style="background: #040D0A; color: var(--gold-primary); border-bottom: 2px solid var(--border-gold);">
+              <tr>
+                <th style="padding: 14px;">Request Code</th>
+                <th style="padding: 14px;">Attendee Name</th>
+                <th style="padding: 14px;">Contact Details</th>
+                <th style="padding: 14px;">UPI UTR Ref Number</th>
+                <th style="padding: 14px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminPendingTableBody">
+              <!-- Populated via admin_page.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: UPI PAYMENT QR CODE MANAGER -->
+    <div id="panelQrManager" style="display: none;">
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 36px; backdrop-filter: blur(12px); box-shadow: var(--shadow-dark);">
+        <div style="margin-bottom: 28px;">
+          <h3 style="font-size: 1.5rem; color: #FFF;">Manage Payment UPI QR Code & UPI ID</h3>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">Upload a new QR Code image or update the UPI ID. Changes update in real time on the attendee booking page.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: start;">
+          <!-- Current Active QR Code Display -->
+          <div style="background: rgba(6, 18, 14, 0.9); border: 2px solid var(--gold-primary); border-radius: var(--radius-md); padding: 24px; text-align: center;">
+            <div style="font-size: 0.85rem; color: var(--gold-light); font-weight: 700; margin-bottom: 12px;">Active UPI Payment QR Code</div>
+            <div style="background: white; padding: 12px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 16px;">
+              <img id="activeQrImgDisplay" src="images/upi_qr.png" alt="Active UPI QR Code" style="width: 200px; height: 200px; object-fit: contain; display: block;">
+            </div>
+            <div style="font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 800;" id="activeUpiIdDisplay">
+              thakrutha@upi
+            </div>
+          </div>
+
+          <!-- Upload & Update Form -->
+          <form id="updateQrForm">
+            <div class="form-group">
+              <label class="form-label" for="newUpiIdInput">UPI ID / VPA Address *</label>
+              <input type="text" class="form-control" id="newUpiIdInput" placeholder="e.g. thakrutha@upi" required style="font-family: monospace; font-size: 1.1rem;">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="qrFileInput">Upload New QR Code Image (.PNG / .JPG)</label>
+              <input type="file" class="form-control" id="qrFileInput" accept="image/png, image/jpeg, image/jpg" style="padding: 10px;">
+              <small style="color: var(--text-muted); display: block; margin-top: 6px;">Select your new GPay/PhonePe/Paytm QR Code image file to upload.</small>
+            </div>
+
+            <div id="qrPreviewArea" style="display: none; margin-bottom: 20px;">
+              <div style="font-size: 0.85rem; color: var(--marigold-bright); margin-bottom: 8px;">New QR Image Preview:</div>
+              <img id="newQrPreviewImg" src="" alt="New QR Preview" style="width: 140px; height: 140px; object-fit: contain; border-radius: var(--radius-md); border: 2px solid var(--gold-primary);">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 14px 28px;">
+              <i data-lucide="upload-cloud"></i> Save & Update Live QR Code
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: REGISTERED ATTENDEES & GATE SCANNER -->
+    <div id="panelAttendees" style="display: none;">
+      <!-- Gate Scanner Simulator -->
+      <div style="background: rgba(6, 18, 14, 0.95); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 32px; box-shadow: var(--shadow-dark);">
+        <h4 style="color: var(--gold-light); font-size: 1.2rem; margin-bottom: 12px;">🎟️ Gate QR Check-In Scanner Simulator</h4>
+        <div style="display: flex; gap: 12px;">
+          <input type="text" class="form-control" id="scanCodeInput" placeholder="Scan or enter Ticket Code (e.g. TK-2026-8942)...">
+          <button class="btn btn-primary" id="verifyScanBtn" style="flex-shrink: 0;">Verify & Grant Entry</button>
+        </div>
+        <div id="scanResultNotice" style="margin-top: 14px; font-weight: 700;"></div>
+      </div>
+
+      <!-- Attendees Table -->
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 32px; backdrop-filter: blur(12px); box-shadow: var(--shadow-dark);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div>
+            <h3 style="font-size: 1.5rem; color: #FFF;">Registered Attendees List</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">All approved attendees with ticket codes and gate check-in status.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="exportCsvBtn">
+            <i data-lucide="download"></i> Export CSV
+          </button>
+        </div>
+
+        <div style="overflow-x: auto; border: 1px solid var(--border-gold); border-radius: var(--radius-md);">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem; text-align: left;">
+            <thead style="background: #040D0A; color: var(--gold-primary); border-bottom: 2px solid var(--border-gold);">
+              <tr>
+                <th style="padding: 12px;">Ticket Code</th>
+                <th style="padding: 12px;">Attendee Name</th>
+                <th style="padding: 12px;">Phone</th>
+                <th style="padding: 12px;">Email</th>
+                <th style="padding: 12px;">Emergency Contact</th>
+                <th style="padding: 12px;">Approved By</th>
+                <th style="padding: 12px;">Check-In Status</th>
+              </tr>
+            </thead>
+            <tbody id="adminGuestListBody">
+              <!-- Populated via admin_page.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ISSUE DIRECT / CASH TICKET -->
+    <div id="panelCreateTicket" style="display: none;">
+      <div style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 36px; backdrop-filter: blur(12px); box-shadow: var(--shadow-dark); max-width: 720px; margin: 0 auto;">
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 1.5rem; color: #FFF;">Issue Ticket Directly (Cash / Offline / VIP)</h3>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">For attendees who cannot pay via UPI GPay/PhonePe. Generates an instant approved ticket and sends Email & SMS notifications immediately.</p>
+        </div>
+
+        <form id="createDirectTicketForm">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+              <label class="form-label" for="directName">Full Name *</label>
+              <input type="text" class="form-control" id="directName" required placeholder="e.g. Suresh Kumar">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="directEmail">Email Address *</label>
+              <input type="email" class="form-control" id="directEmail" required placeholder="e.g. suresh@example.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="directPhone">Phone Number *</label>
+              <input type="tel" class="form-control" id="directPhone" required placeholder="e.g. 9876500999">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="directEmergency">Emergency Contact *</label>
+              <input type="tel" class="form-control" id="directEmergency" required placeholder="e.g. 9876500998">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="form-label" for="directNote">Payment Method / Admin Note</label>
+            <input type="text" class="form-control" id="directNote" placeholder="e.g. Cash Collected (₹1100), Bank Transfer, or VIP Pass">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 16px; margin-top: 20px; font-size: 1.05rem;">
+            <i data-lucide="send"></i> Issue Official Ticket & Send Notifications (Email + SMS)
+          </button>
+        </form>
+
+        <div id="directTicketResultArea" style="margin-top: 28px; display: none;">
+          <!-- Populated with generated ticket details -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/admin_page.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

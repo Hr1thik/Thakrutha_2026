@@ -1,0 +1,23 @@
+{
+  "name": "thakrutha-onam-2026",
+  "version": "1.0.0",
+  "description": "Full-stack Onam Celebration Event Ticketing Application for THAKRUTHA 2026",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "onam",
+    "thakrutha",
+    "event-ticketing",
+    "kerala",
+    "upi-payment",
+    "admin-portal"
+  ],
+  "author": "THAKRUTHA Organizing Committee",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
