@@ -272,29 +272,48 @@ async function createTicketSubmission({ name, email, phone, emergencyContact, ut
   const now = new Date().toISOString();
 
   if (useSupabase) {
-    const result = await supabaseFetch(`tickets`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name,
-        email,
-        phone,
-        emergency_contact: emergencyContact,
-        pass_type: 'THAKRUTHA Stag Festival Pass',
-        amount: 1100,
-        request_code: requestCode,
-        utr_number: utrNumber,
-        payment_screenshot: paymentScreenshot || '',
-        status: 'PENDING',
-        sadhya_type: '100% Pure Veg',
-        submitted_at: now,
-        created_at: now
-      })
-    });
-    return {
-      success: true,
-      message: 'Registration details and payment screenshot submitted successfully! Pending admin approval.',
-      submission: cleanRecord(result[0])
+    let payload = {
+      name,
+      email,
+      phone,
+      emergency_contact: emergencyContact,
+      pass_type: 'THAKRUTHA Stag Festival Pass',
+      amount: 1100,
+      request_code: requestCode,
+      utr_number: utrNumber,
+      payment_screenshot: paymentScreenshot || '',
+      status: 'PENDING',
+      sadhya_type: '100% Pure Veg',
+      submitted_at: now,
+      created_at: now
     };
+
+    try {
+      const result = await supabaseFetch(`tickets`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      return {
+        success: true,
+        message: 'Registration details and payment screenshot submitted successfully! Pending admin approval.',
+        submission: cleanRecord(result[0])
+      };
+    } catch (supabaseErr) {
+      if (supabaseErr.message && supabaseErr.message.includes('payment_screenshot')) {
+        console.warn('payment_screenshot column missing in Supabase, retrying insert without image payload...');
+        delete payload.payment_screenshot;
+        const result = await supabaseFetch(`tickets`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        return {
+          success: true,
+          message: 'Registration details submitted successfully! Pending admin approval.',
+          submission: cleanRecord(result[0])
+        };
+      }
+      throw supabaseErr;
+    }
   }
 
   const stmt = db.prepare(`

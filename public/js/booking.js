@@ -46,7 +46,7 @@
       ticketPassModal.classList.remove('active');
     });
 
-    // Handle Payment Screenshot File Selection
+    // Handle Payment Screenshot File Selection with Canvas Compression
     screenshotFileInput?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) {
@@ -65,9 +65,35 @@
 
       const reader = new FileReader();
       reader.onload = function(event) {
-        currentScreenshotBase64 = event.target.result;
-        if (screenshotPreviewImg) screenshotPreviewImg.src = currentScreenshotBase64;
-        if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'block';
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 500;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round(height * (maxDim / width));
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round(width * (maxDim / height));
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          currentScreenshotBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          if (screenshotPreviewImg) screenshotPreviewImg.src = currentScreenshotBase64;
+          if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'block';
+        };
+        img.src = event.target.result;
       };
       reader.readAsDataURL(file);
     });
