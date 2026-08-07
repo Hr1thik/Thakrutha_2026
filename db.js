@@ -416,7 +416,13 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 
 async function getPendingSubmissions() {
   if (useSupabase) {
-    return cleanRecord(await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`));
+    try {
+      const data = await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`);
+      return cleanRecord(data);
+    } catch (e) {
+      console.error('Supabase getPendingSubmissions error:', e.message);
+      return [];
+    }
   }
   const stmt = db.prepare("SELECT * FROM tickets WHERE status = 'PENDING' ORDER BY id DESC");
   return cleanRecord(stmt.all());
@@ -424,7 +430,13 @@ async function getPendingSubmissions() {
 
 async function getAllTickets() {
   if (useSupabase) {
-    return cleanRecord(await supabaseFetch(`tickets?order=id.desc`));
+    try {
+      const data = await supabaseFetch(`tickets?order=id.desc`);
+      return cleanRecord(data);
+    } catch (e) {
+      console.error('Supabase getAllTickets error:', e.message);
+      return [];
+    }
   }
   const stmt = db.prepare("SELECT * FROM tickets ORDER BY id DESC");
   return cleanRecord(stmt.all());
