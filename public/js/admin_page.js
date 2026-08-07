@@ -26,6 +26,14 @@
       window.location.href = '/';
     });
 
+    // Close Proof Modal
+    document.getElementById('closeProofModal')?.addEventListener('click', () => {
+      document.getElementById('screenshotProofModal')?.classList.remove('active');
+    });
+    document.getElementById('closeProofBtn')?.addEventListener('click', () => {
+      document.getElementById('screenshotProofModal')?.classList.remove('active');
+    });
+
     // 3. Tab Switching
     const tabPendingBtn = document.getElementById('tabPendingBtn');
     const tabQrManagerBtn = document.getElementById('tabQrManagerBtn');
@@ -225,7 +233,7 @@
       if (!pendingList || pendingList.length === 0) {
         pendingTbody.innerHTML = `
           <tr>
-            <td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">
+            <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">
               🎉 No pending payment approvals! All submissions are reviewed.
             </td>
           </tr>
@@ -238,6 +246,13 @@
             <td style="padding: 14px; font-size: 0.88rem; color: var(--text-secondary);">${item.phone}<br>${item.email}</td>
             <td style="padding: 14px; font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 800;">${item.utr_number}</td>
             <td style="padding: 14px; text-align: center;">
+              ${item.payment_screenshot ? `
+                <button class="btn btn-secondary btn-sm btn-view-screenshot" data-img="${encodeURIComponent(item.payment_screenshot)}" data-name="${item.name}" data-code="${item.request_code}" style="padding: 6px 12px; font-size: 0.82rem;">
+                  🖼️ View Screenshot
+                </button>
+              ` : '<span style="color: var(--text-muted); font-size: 0.8rem;">No Image</span>'}
+            </td>
+            <td style="padding: 14px; text-align: center;">
               <button class="btn btn-primary btn-sm btn-approve-utr" data-code="${item.request_code}" style="padding: 8px 16px; font-size: 0.85rem; margin-right: 8px;">
                 ✅ Approve
               </button>
@@ -247,6 +262,24 @@
             </td>
           </tr>
         `).join('');
+
+        document.querySelectorAll('.btn-view-screenshot').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const rawImg = decodeURIComponent(e.currentTarget.getAttribute('data-img'));
+            const name = e.currentTarget.getAttribute('data-name');
+            const code = e.currentTarget.getAttribute('data-code');
+
+            const modal = document.getElementById('screenshotProofModal');
+            const imgEl = document.getElementById('proofModalImg');
+            const subText = document.getElementById('proofModalSubText');
+
+            if (imgEl && modal) {
+              imgEl.src = rawImg;
+              if (subText) subText.textContent = `Payment Receipt Proof for ${name} (${code})`;
+              modal.classList.add('active');
+            }
+          });
+        });
 
         document.querySelectorAll('.btn-approve-utr').forEach(btn => {
           btn.addEventListener('click', (e) => {

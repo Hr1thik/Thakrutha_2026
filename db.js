@@ -56,6 +56,49 @@ async function supabaseFetch(endpoint, options = {}) {
   return res.json();
 }
 
+async function sendRealEmail({ to, subject, html }) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.log(`[EMAIL NOTICE TO ${to}] Subject: ${subject}`);
+    return;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM || 'THAKRUTHA 2026 <onboarding@resend.dev>',
+        to: [to],
+        subject: subject,
+        html: html
+      })
+    });
+    const data = await res.json();
+    console.log('📧 REAL EMAIL SENT via Resend:', data);
+  } catch (err) {
+    console.error('Email dispatch error:', err.message);
+  }
+}
+
+async function sendRealSMS({ phone, message }) {
+  const fast2smsKey = process.env.FAST2SMS_API_KEY;
+  if (!fast2smsKey) {
+    console.log(`[SMS NOTICE TO +91 ${phone}] Message: ${message}`);
+    return;
+  }
+  try {
+    const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+    const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${fast2smsKey}&route=q&message=${encodeURIComponent(message)}&flash=0&numbers=${cleanPhone}`);
+    const data = await res.json();
+    console.log('📱 REAL SMS SENT via Fast2SMS:', data);
+  } catch (err) {
+    console.error('SMS dispatch error:', err.message);
+  }
+}
+
 function initDB() {
   if (useSupabase) {
     console.log('⚡ Connected to Supabase Cloud Database:', SUPABASE_URL);
@@ -90,6 +133,7 @@ function initDB() {
     if (!cols.includes('request_code')) db.exec("ALTER TABLE tickets ADD COLUMN request_code TEXT");
     if (!cols.includes('ticket_code')) db.exec("ALTER TABLE tickets ADD COLUMN ticket_code TEXT");
     if (!cols.includes('utr_number')) db.exec("ALTER TABLE tickets ADD COLUMN utr_number TEXT DEFAULT ''");
+    if (!cols.includes('payment_screenshot')) db.exec("ALTER TABLE tickets ADD COLUMN payment_screenshot TEXT DEFAULT ''");
     if (!cols.includes('status')) db.exec("ALTER TABLE tickets ADD COLUMN status TEXT DEFAULT 'APPROVED'");
     if (!cols.includes('submitted_at')) db.exec("ALTER TABLE tickets ADD COLUMN submitted_at TEXT");
     if (!cols.includes('approved_at')) db.exec("ALTER TABLE tickets ADD COLUMN approved_at TEXT");
@@ -223,7 +267,7 @@ function cleanRecord(rec) {
   return cleaned;
 }
 
-async function createTicketSubmission({ name, email, phone, emergencyContact, utrNumber }) {
+async function createTicketSubmission({ name, email, phone, emergencyContact, utrNumber, paymentScreenshot }) {
   const requestCode = `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
   const now = new Date().toISOString();
 
@@ -239,6 +283,7 @@ async function createTicketSubmission({ name, email, phone, emergencyContact, ut
         amount: 1100,
         request_code: requestCode,
         utr_number: utrNumber,
+        payment_screenshot: paymentScreenshot || '',
         status: 'PENDING',
         sadhya_type: '100% Pure Veg',
         submitted_at: now,
@@ -247,14 +292,14 @@ async function createTicketSubmission({ name, email, phone, emergencyContact, ut
     });
     return {
       success: true,
-      message: 'Payment details submitted successfully! Pending admin approval.',
+      message: 'Registration details and payment screenshot submitted successfully! Pending admin approval.',
       submission: cleanRecord(result[0])
     };
   }
 
   const stmt = db.prepare(`
-    INSERT INTO tickets (name, email, phone, emergency_contact, pass_type, amount, request_code, ticket_code, utr_number, status, sadhya_type, submitted_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tickets (name, email, phone, emergency_contact, pass_type, amount, request_code, ticket_code, utr_number, payment_screenshot, status, sadhya_type, submitted_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -267,6 +312,7 @@ async function createTicketSubmission({ name, email, phone, emergencyContact, ut
     requestCode,
     '',
     utrNumber,
+    paymentScreenshot || '',
     'PENDING',
     '100% Pure Veg',
     now,
@@ -278,7 +324,7 @@ async function createTicketSubmission({ name, email, phone, emergencyContact, ut
 
   return {
     success: true,
-    message: 'Payment details submitted successfully! Pending admin approval.',
+    message: 'Registration details and payment screenshot submitted successfully! Pending admin approval.',
     submission: cleanRecord(record)
   };
 }
@@ -394,19 +440,19 @@ async function approvePayment(requestCode, adminUsername) {
   const stmt = db.prepare("SELECT * FROM tickets WHERE request_code = ? AND status = 'PENDING'");
   const ticket = stmt.get(requestCode);
 
-  if (!ticket) {
-    return { success: false, message: 'Request code not found or already processed.' };
-  }
-
-  const updateStmt = db.prepare(`
-    UPDATE tickets 
-    SET status = 'APPROVED', ticket_code = ?, approved_at = ?, approved_by = ?
-    WHERE request_code = ?
-  `);
-
-  updateStmt.run(ticketCode, now, adminUsername, requestCode);
-
   const updatedTicket = db.prepare('SELECT * FROM tickets WHERE request_code = ?').get(requestCode);
+
+  // Trigger Real Email & SMS Notification Dispatches
+  sendRealEmail({
+    to: updatedTicket.email,
+    subject: `🎟️ Your THAKRUTHA 2026 E-Ticket Pass (${ticketCode})`,
+    html: `<h2>Dear ${updatedTicket.name},</h2><p>Your payment for THAKRUTHA 2026 has been <strong>APPROVED</strong>!</p><p>Official Ticket Code: <strong>${ticketCode}</strong></p><p>Date: August 23, 2026 | Time: 09:00 AM - 07:00 PM</p>`
+  });
+
+  sendRealSMS({
+    phone: updatedTicket.phone,
+    message: `Hi ${updatedTicket.name}, your THAKRUTHA 2026 ticket (${ticketCode}) is APPROVED! Date: Aug 23, 9 AM - 7 PM.`
+  });
 
   return {
     success: true,

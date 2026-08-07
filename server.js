@@ -201,7 +201,13 @@ const server = http.createServer(async (req, res) => {
 
           if (!data.name || !data.email || !data.phone || !data.emergencyContact || !data.utrNumber) {
             res.writeHead(400);
-            res.end(JSON.stringify({ error: 'All fields including 12-digit UPI UTR Number are required.' }));
+            res.end(JSON.stringify({ error: 'All fields (Name, Email, Phone, Emergency Contact, and UTR Number) are required.' }));
+            return;
+          }
+
+          if (!data.paymentScreenshot) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Payment screenshot proof is mandatory. Please upload your payment screenshot before submitting.' }));
             return;
           }
 
@@ -213,7 +219,7 @@ const server = http.createServer(async (req, res) => {
 
           if (!data.agreedToRules) {
             res.writeHead(400);
-            res.end(JSON.stringify({ error: 'You must agree to event rules (Stag Entry & Zero Tolerance) to proceed.' }));
+            res.end(JSON.stringify({ error: 'You must agree to the event rules (Stag Entry & Zero Tolerance Policy) to submit.' }));
             return;
           }
 

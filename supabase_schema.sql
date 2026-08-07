@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   pass_type TEXT NOT NULL DEFAULT 'THAKRUTHA Stag Festival Pass',
   amount NUMERIC NOT NULL DEFAULT 1100,
   utr_number TEXT DEFAULT '',
+  payment_screenshot TEXT DEFAULT '',
   status TEXT DEFAULT 'PENDING',
   sadhya_type TEXT DEFAULT '100% Pure Veg',
   submitted_at TEXT,
@@ -25,6 +26,9 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   created_at TEXT DEFAULT NOW()
 );
 
+-- Add column if table already exists
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS payment_screenshot TEXT DEFAULT '';
+
 -- 2. Create Settings Table
 CREATE TABLE IF NOT EXISTS public.settings (
   key TEXT PRIMARY KEY,
@@ -34,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
 -- 3. Insert Default Settings
 INSERT INTO public.settings (key, value) VALUES
   ('upi_qr_url', 'images/upi_qr.png'),
-  ('upi_id', 'thakrutha.pay@upi')
+  ('upi_id', 'thakrutha@upi')
 ON CONFLICT (key) DO NOTHING;
 
 -- 4. Enable Row Level Security (RLS) & Add Public Policies

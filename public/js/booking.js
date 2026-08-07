@@ -1,23 +1,36 @@
-// Ticket Booking Controller with Manual UPI UTR Submission
+// Ticket Booking Controller with Payment Screenshot Upload
 (function() {
   let currentRecord = null;
+  let currentScreenshotBase64 = '';
 
   document.addEventListener('DOMContentLoaded', () => {
     const bookingModal = document.getElementById('bookingModal');
     const ticketPassModal = document.getElementById('ticketPassModal');
     const bookingForm = document.getElementById('bookingForm');
-
-    const step1 = document.getElementById('bookingStep1');
-    const step2 = document.getElementById('bookingStep2');
-    const btnNextToPayment = document.getElementById('btnNextToPayment');
-    const btnBackToStep1 = document.getElementById('btnBackToStep1');
     const downloadPassBtn = document.getElementById('downloadPassBtn');
 
-    // Open booking modal
+    const screenshotFileInput = document.getElementById('screenshotFileInput');
+    const screenshotPreviewWrapper = document.getElementById('screenshotPreviewWrapper');
+    const screenshotPreviewImg = document.getElementById('screenshotPreviewImg');
+
+    // Open booking modal & fetch dynamic QR from admin settings
     ['bookNavBtn', 'heroBookBtn', 'mainBookPassBtn', 'dockBookBtn'].forEach(id => {
-      document.getElementById(id)?.addEventListener('click', () => {
-        resetWizard();
+      document.getElementById(id)?.addEventListener('click', async () => {
+        resetForm();
         bookingModal.classList.add('active');
+
+        try {
+          const res = await fetch('/api/settings');
+          const data = await res.json();
+          if (res.ok) {
+            const upiImg = document.getElementById('bookingUpiQrImg');
+            const upiId = document.getElementById('bookingUpiIdText');
+            if (upiImg && data.upiQrUrl) upiImg.src = data.upiQrUrl;
+            if (upiId && data.upiId) upiId.textContent = 'UPI ID: ' + data.upiId;
+          }
+        } catch (e) {
+          console.warn('Could not fetch dynamic QR settings:', e);
+        }
       });
     });
 
@@ -33,55 +46,39 @@
       ticketPassModal.classList.remove('active');
     });
 
-    // Step 1 -> Step 2 Navigation (Loads dynamic QR settings from Admin!)
-    btnNextToPayment?.addEventListener('click', async () => {
-      const name = document.getElementById('attendeeName').value.trim();
-      const email = document.getElementById('attendeeEmail').value.trim();
-      const phone = document.getElementById('attendeePhone').value.trim();
-      const emergencyContact = document.getElementById('emergencyContact').value.trim();
-      const chkStag = document.getElementById('chkStag').checked;
-      const chkSubstance = document.getElementById('chkSubstance').checked;
-
-      if (!name || !email || !phone || !emergencyContact) {
-        alert('Please fill out all contact details in Step 1.');
+    // Handle Payment Screenshot File Selection
+    screenshotFileInput?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        currentScreenshotBase64 = '';
+        if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'none';
         return;
       }
 
-      if (!chkStag || !chkSubstance) {
-        alert('You must accept both event policies (Stag Entry & Zero Drugs/Alcohol) to proceed.');
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file (PNG, JPG, JPEG).');
+        e.target.value = '';
+        currentScreenshotBase64 = '';
+        if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'none';
         return;
       }
 
-      // Fetch active QR code uploaded by Admin
-      try {
-        const res = await fetch('/api/settings');
-        const data = await res.json();
-        if (res.ok) {
-          const upiImg = document.getElementById('bookingUpiQrImg');
-          const upiId = document.getElementById('bookingUpiIdText');
-          if (upiImg && data.upiQrUrl) upiImg.src = data.upiQrUrl;
-          if (upiId && data.upiId) upiId.textContent = 'UPI ID: ' + data.upiId;
-        }
-      } catch (e) {
-        console.warn('Could not fetch dynamic QR settings:', e);
-      }
-
-      step1.style.display = 'none';
-      step2.style.display = 'block';
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        currentScreenshotBase64 = event.target.result;
+        if (screenshotPreviewImg) screenshotPreviewImg.src = currentScreenshotBase64;
+        if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
     });
 
-    btnBackToStep1?.addEventListener('click', () => {
-      step2.style.display = 'none';
-      step1.style.display = 'block';
-    });
-
-    function resetWizard() {
+    function resetForm() {
       bookingForm?.reset();
-      step2.style.display = 'none';
-      step1.style.display = 'block';
+      currentScreenshotBase64 = '';
+      if (screenshotPreviewWrapper) screenshotPreviewWrapper.style.display = 'none';
     }
 
-    // Submit Booking Form with UPI UTR
+    // Submit Booking Form
     bookingForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -90,10 +87,33 @@
       const phone = document.getElementById('attendeePhone').value.trim();
       const emergencyContact = document.getElementById('emergencyContact').value.trim();
       const utrNumber = document.getElementById('utrNumber').value.trim();
+      const chkStag = document.getElementById('chkStag').checked;
+      const chkSubstance = document.getElementById('chkSubstance').checked;
+
+      if (!name || !email || !phone || !emergencyContact) {
+        alert('Please fill out all attendee information fields.');
+        return;
+      }
+
+      if (!currentScreenshotBase64) {
+        alert('Payment screenshot proof is mandatory! Please select and upload your payment receipt screenshot before submitting.');
+        return;
+      }
 
       if (!utrNumber || utrNumber.length < 6) {
         alert('Please enter a valid 12-digit UPI UTR Transaction Reference Number.');
         return;
+      }
+
+      if (!chkStag || !chkSubstance) {
+        alert('You must accept the event policies (Stag Entry & Zero Drugs/Alcohol Policy) to submit your pass request.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btnSubmitForm');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Submitting Request & Screenshot... <span class="spinner-border spinner-border-sm"></span>';
       }
 
       try {
@@ -106,6 +126,7 @@
             phone,
             emergencyContact,
             utrNumber,
+            paymentScreenshot: currentScreenshotBase64,
             agreedToRules: true
           })
         });
@@ -113,12 +134,21 @@
         const data = await response.json();
         if (!response.ok || !data.success) {
           alert('Submission Error: ' + (data.error || data.message));
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Submit Pass Request & Payment Proof <i data-lucide="check-circle"></i>';
+          }
           return;
         }
 
-        currentRecord = data.record;
+        currentRecord = data.submission;
         bookingModal.classList.remove('active');
-        resetWizard();
+        resetForm();
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit Pass Request & Payment Proof <i data-lucide="check-circle"></i>';
+        }
 
         // Confetti burst
         if (typeof confetti === 'function') {
@@ -130,7 +160,7 @@
           });
         }
 
-        // Show Submission Status / Pass Modal
+        // Show Submission Status / Pass Receipt Modal
         renderTicketPass(currentRecord);
         ticketPassModal.classList.add('active');
 
@@ -140,6 +170,10 @@
 
       } catch (err) {
         alert('Network Error submitting payment: ' + err.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit Pass Request & Payment Proof <i data-lucide="check-circle"></i>';
+        }
       }
     });
 
@@ -155,7 +189,7 @@
 
     document.getElementById('passModalHeading').textContent = isApproved 
       ? 'Official Digital E-Ticket Pass' 
-      : 'Payment Request Submitted (Pending Approval)';
+      : 'Pass Request Receipt (Pending Admin Approval)';
 
     document.getElementById('passStatusLabel').textContent = isApproved 
       ? 'Official Festival Pass' 
@@ -174,7 +208,7 @@
       document.getElementById('qrSubText').textContent = 'Scan at Entry';
     } else {
       statusBadgeEl.innerHTML = '<span style="color: var(--marigold-bright); font-weight: 800;">⏳ PENDING ADMIN APPROVAL</span>';
-      document.getElementById('qrSubText').textContent = 'Awaiting Approval';
+      document.getElementById('qrSubText').textContent = 'Awaiting Verification';
     }
 
     const qrCanvas = document.getElementById('ticketQrCanvas');

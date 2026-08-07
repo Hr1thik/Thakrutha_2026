@@ -101,6 +101,7 @@
                 <th style="padding: 14px;">Attendee Name</th>
                 <th style="padding: 14px;">Contact Details</th>
                 <th style="padding: 14px;">UPI UTR Ref Number</th>
+                <th style="padding: 14px; text-align: center;">Payment Proof</th>
                 <th style="padding: 14px; text-align: center;">Actions</th>
               </tr>
             </thead>
@@ -178,9 +179,9 @@
           <button class="btn btn-secondary btn-sm" id="stopCameraBtn" style="position: absolute; top: 10px; right: 10px; z-index: 10;">Stop Camera</button>
         </div>
 
-        <div style="display: flex; gap: 12px; margin-top: 14px;">
+        <div class="search-input-group" style="margin-top: 14px;">
           <input type="text" class="form-control" id="scanCodeInput" placeholder="Scan or enter Ticket Code (e.g. TK-2026-8942)...">
-          <button class="btn btn-primary" id="verifyScanBtn" style="flex-shrink: 0;">Verify & Grant Entry</button>
+          <button class="btn btn-primary" id="verifyScanBtn">Verify & Grant Entry</button>
         </div>
         <div id="scanResultNotice" style="margin-top: 14px; font-weight: 700;"></div>
       </div>
@@ -265,6 +266,27 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- MODAL: PAYMENT SCREENSHOT PROOF PREVIEW -->
+  <div class="modal-overlay" id="screenshotProofModal">
+    <div class="modal-card" style="max-width: 540px; text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="proofModalHeading">Payment Screenshot Proof</h3>
+        <button class="modal-close-btn" id="closeProofModal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div style="margin-bottom: 14px; font-size: 0.9rem; color: var(--gold-light);" id="proofModalSubText">
+          Attendee Payment Screenshot Receipt
+        </div>
+        <div style="background: #000; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--border-gold);">
+          <img id="proofModalImg" src="" alt="Payment Screenshot Proof" style="max-width: 100%; max-height: 480px; object-fit: contain; display: block; margin: 0 auto;">
+        </div>
+        <button class="btn btn-outline" id="closeProofBtn" style="width: 100%; margin-top: 20px; padding: 12px; justify-content: center;">
+          Close Screenshot Preview
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="js/admin_page.js"></script>
