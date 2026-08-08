@@ -120,9 +120,12 @@
           area.style.display = 'block';
           area.innerHTML = `
             <div style="background: rgba(74, 222, 128, 0.12); border: 1.5px solid #4ADE80; border-radius: var(--radius-md); padding: 20px; text-align: center;">
-              <h4 style="color: #4ADE80; font-size: 1.2rem; margin-bottom: 8px;">✅ Ticket Issued & Dispatched!</h4>
-              <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 12px;">Official Ticket Code: <strong style="color: var(--gold-primary); font-family: monospace; font-size: 1.25rem;">${data.ticket.ticket_code}</strong></p>
-              <p style="font-size: 0.88rem; color: var(--text-secondary);">Sent via Email to <strong>${data.ticket.email}</strong> and SMS to <strong>+91 ${data.ticket.phone}</strong>.</p>
+              <h4 style="color: #4ADE80; font-size: 1.2rem; margin-bottom: 8px;">✅ Ticket Issued & Ready!</h4>
+              <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 8px;">Attendee: <strong>${data.ticket.name}</strong></p>
+              <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 14px;">Official Ticket Code: <strong style="color: var(--gold-primary); font-family: monospace; font-size: 1.25rem;">${data.ticket.ticket_code}</strong></p>
+              <div style="display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap;">
+                <a href="/ticket.html?code=${data.ticket.ticket_code}" target="_blank" class="btn btn-primary btn-sm">🔗 Open & Download PDF Pass</a>
+              </div>
             </div>
           `;
 
@@ -180,9 +183,10 @@
       }
     });
 
-    // Load initial data
+    // Load initial data and set 10-second automatic real-time dashboard refresh
     reloadDashboardData();
     loadSettingsData();
+    setInterval(reloadDashboardData, 10000);
   });
 
   async function loadSettingsData() {
@@ -457,6 +461,9 @@
         notice.innerHTML = `
           <div style="background: rgba(74, 222, 128, 0.2); border: 2px solid #4ADE80; color: #4ADE80; padding: 16px; border-radius: var(--radius-md); font-size: 1.05rem; text-align: center; font-weight: 800; box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);">
             🟢 ${data.message}
+            <div style="margin-top: 10px;">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('startCameraBtn').click()">⚡ Scan Next Ticket</button>
+            </div>
           </div>
         `;
         input.value = '';
@@ -465,6 +472,9 @@
         notice.innerHTML = `
           <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #EF4444; color: #FCA5A5; padding: 16px; border-radius: var(--radius-md); font-size: 1.05rem; text-align: center; font-weight: 800; box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);">
             🔴 ${data.message}
+            <div style="margin-top: 10px;">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('startCameraBtn').click()">⚡ Scan Next Ticket</button>
+            </div>
           </div>
         `;
       }

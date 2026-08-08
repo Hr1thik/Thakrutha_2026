@@ -71,25 +71,10 @@
           `;
         }).join('');
 
-        document.querySelectorAll('.view-pass-btn').forEach(btn => {
+        document.querySelectorAll('.view-pass-btn, .download-pdf-wallet-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             const reqCode = e.currentTarget.getAttribute('data-req');
-            const found = data.tickets.find(tk => tk.request_code === reqCode);
-            if (found) {
-              walletModal.classList.remove('active');
-              window.renderTicketPass(found);
-              document.getElementById('ticketPassModal').classList.add('active');
-            }
-          });
-        });
-
-        document.querySelectorAll('.download-pdf-wallet-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const reqCode = e.currentTarget.getAttribute('data-req');
-            const found = data.tickets.find(tk => tk.request_code === reqCode);
-            if (found && window.downloadTicketAsPdf) {
-              window.downloadTicketAsPdf(found);
-            }
+            window.location.href = `/ticket.html?code=${encodeURIComponent(reqCode)}`;
           });
         });
 

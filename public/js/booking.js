@@ -186,9 +186,8 @@
           });
         }
 
-        // Show Submission Status / Pass Receipt Modal
-        renderTicketPass(currentRecord);
-        ticketPassModal.classList.add('active');
+        // Redirect attendee directly to dedicated /ticket.html pass page!
+        window.location.href = `/ticket.html?code=${encodeURIComponent(currentRecord.request_code)}`;
 
         // Refresh stats & admin pending list if open
         window.fetchStats?.();

@@ -397,7 +397,7 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
     });
     return {
       success: true,
-      message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Sent via Email & SMS.`,
+      message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Ready for PDF download.`,
       ticket: result[0]
     };
   }
@@ -430,7 +430,7 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 
   return {
     success: true,
-    message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Sent via Email & SMS.`,
+    message: `Ticket ${ticketCode} directly issued by ${adminUsername}! Ready for PDF download.`,
     ticket
   };
 }

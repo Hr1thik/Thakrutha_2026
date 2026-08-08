@@ -401,6 +401,7 @@ const server = http.createServer(async (req, res) => {
   // --- STATIC FILE SERVER ---
   let requestedFile = pathname === '/' ? 'index.html' : pathname;
   if (requestedFile === '/admin') requestedFile = 'admin.html';
+  if (requestedFile === '/ticket') requestedFile = 'ticket.html';
 
   let filePath = path.join(PUBLIC_DIR, requestedFile);
 

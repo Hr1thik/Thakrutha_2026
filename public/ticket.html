@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THAKRUTHA 2026 — Official E-Ticket Pass</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <script src="/js/vendor/qrcode_gen.js"></script>
+  <script src="/js/vendor/jspdf.umd.min.js"></script>
+</head>
+<body style="background-color: var(--bg-dark); color: var(--text-primary); padding: 40px 16px;">
+
+  <div class="container" style="max-width: 680px; margin: 0 auto;">
+    
+    <!-- Top Nav Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <a href="/" class="btn btn-outline btn-sm">
+        ← Back to THAKRUTHA 2026
+      </a>
+      <div style="font-size: 0.85rem; color: var(--gold-light); font-weight: 700; font-family: monospace;">
+        🎟️ Digital E-Pass Gateway
+      </div>
+    </div>
+
+    <!-- Ticket Pass Card Container -->
+    <div id="ticketContainer" style="background: var(--bg-card); border: 2px solid var(--gold-primary); border-radius: var(--radius-lg); padding: 32px; backdrop-filter: blur(16px); box-shadow: 0 0 35px rgba(255,215,0,0.15); text-align: center;">
+      <div style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 20px;">
+        ⌛ Loading ticket pass details...
+      </div>
+    </div>
+
+    <!-- Actions Buttons -->
+    <div id="passActionsGroup" style="margin-top: 24px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; display: none;">
+      <button class="btn btn-primary" id="downloadPdfBtn" style="padding: 14px 28px; font-size: 1rem;">
+        📄 Download Ticket as PDF
+      </button>
+      <button class="btn btn-outline" id="downloadPngBtn" style="padding: 14px 28px; font-size: 1rem;">
+        🖼️ Download Ticket as Image
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code') || urlParams.get('q');
+      let currentTicket = null;
+
+      const container = document.getElementById('ticketContainer');
+      const actionsGroup = document.getElementById('passActionsGroup');
+
+      if (!code) {
+        container.innerHTML = `
+          <div style="color: #EF4444; font-weight: 700; padding: 20px;">
+            ⚠️ No ticket code provided in URL parameter.<br>
+            Please search your pass in <a href="/#wallet" style="color: var(--gold-primary); text-decoration: underline;">My Ticket Wallet</a>.
+          </div>
+        `;
+        return;
+      }
+
+      fetch(`/api/tickets/lookup?q=${encodeURIComponent(code)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success || !data.tickets || data.tickets.length === 0) {
+            container.innerHTML = `
+              <div style="color: #EF4444; font-weight: 700; padding: 20px;">
+                ❌ No pass found for ticket code "${code}".
+              </div>
+            `;
+            return;
+          }
+
+          currentTicket = data.tickets[0];
+          renderPassView(currentTicket);
+          actionsGroup.style.display = 'flex';
+        })
+        .catch(err => {
+          container.innerHTML = `<div style="color: red;">Error loading pass: ${err.message}</div>`;
+        });
+
+      function renderPassView(t) {
+        const isApproved = t.status === 'APPROVED';
+        const passCode = isApproved ? t.ticket_code : t.request_code;
+
+        let qrDataUrl = '';
+        if (typeof qrcode !== 'undefined') {
+          try {
+            const qr = qrcode(0, 'M');
+            qr.addData(passCode);
+            qr.make();
+            qrDataUrl = qr.createDataURL(6, 2);
+          } catch(e) {}
+        }
+
+        container.innerHTML = `
+          <div style="border: 2px solid ${isApproved ? '#FFD700' : '#FF6B00'}; border-radius: var(--radius-md); padding: 24px; background: rgba(6, 18, 14, 0.95); text-align: left; position: relative;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 14px; margin-bottom: 18px;">
+              <div>
+                <div style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold-primary);">THAKRUTHA 2026</div>
+                <div style="font-size: 0.8rem; color: var(--gold-light);">Grand Onam Celebration | August 23, 2026</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Pass Code</div>
+                <div style="font-family: monospace; font-weight: 800; font-size: 1.1rem; color: ${isApproved ? '#4ADE80' : '#FF9E00'};">${passCode}</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 20px; align-items: center;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">ATTENDEE NAME</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #FFF; margin-bottom: 10px;">${t.name}</div>
+
+                <div style="font-size: 0.75rem; color: var(--text-muted);">UPI UTR REF</div>
+                <div style="font-family: monospace; font-size: 0.95rem; color: var(--gold-primary); font-weight: 700; margin-bottom: 10px;">${t.utr_number || 'N/A'}</div>
+
+                <div style="font-size: 0.75rem; color: var(--text-muted);">PASS STATUS</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: ${isApproved ? '#4ADE80' : '#FF9E00'};">
+                  ${isApproved ? '✅ APPROVED & VALIDATED' : '⏳ PENDING ADMIN APPROVAL'}
+                </div>
+              </div>
+
+              <div style="text-align: center;">
+                ${qrDataUrl ? `<img src="${qrDataUrl}" style="width: 130px; height: 130px; border-radius: 6px; background: white; padding: 6px; box-shadow: 0 0 15px rgba(255,215,0,0.3);" alt="QR Code">` : ''}
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Scan at Entry</div>
+              </div>
+            </div>
+
+            <div style="border-top: 1px dashed rgba(255,215,0,0.3); margin-top: 18px; padding-top: 12px; font-size: 0.75rem; color: var(--text-secondary);">
+              Strictly Stag Entry Only • Valid Govt ID required • Venue: Revealed Soon
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+        if (!currentTicket) return;
+        downloadTicketAsPdf(currentTicket);
+      });
+
+      document.getElementById('downloadPngBtn').addEventListener('click', () => {
+        if (!currentTicket) return;
+        downloadTicketAsImage(currentTicket);
+      });
+
+      function downloadTicketAsPdf(ticket) {
+        const { jsPDF } = window.jspdf || {};
+        if (!jsPDF) { alert('jsPDF loading...'); return; }
+
+        const isApproved = ticket.status === 'APPROVED';
+        const code = isApproved ? ticket.ticket_code : ticket.request_code;
+
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 105] });
+
+        doc.setFillColor(6, 18, 14);
+        doc.rect(0, 0, 148, 105, 'F');
+
+        doc.setDrawColor(255, 215, 0);
+        doc.setLineWidth(1.5);
+        doc.roundedRect(4, 4, 140, 97, 3, 3, 'D');
+        doc.setLineWidth(0.5);
+        doc.roundedRect(6, 6, 136, 93, 2, 2, 'D');
+
+        doc.setTextColor(255, 215, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text('THAKRUTHA 2026', 10, 16);
+
+        doc.setTextColor(255, 226, 89);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Grand Onam Celebration | August 23, 2026 (09:00 AM - 07:00 PM)', 10, 21);
+
+        doc.setDrawColor(255, 215, 0);
+        doc.setLineWidth(0.4);
+        doc.line(10, 24, 138, 24);
+
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(7);
+        doc.text('ATTENDEE NAME', 10, 31);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(ticket.name, 10, 37);
+
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('PASS TYPE & MEAL', 10, 44);
+
+        doc.setTextColor(255, 215, 0);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('THAKRUTHA Stag Pass (100% Veg Sadhya)', 10, 49);
+
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('UPI UTR TRANSACTION REF', 10, 56);
+
+        doc.setTextColor(255, 226, 89);
+        doc.setFontSize(9);
+        doc.setFont('courier', 'bold');
+        doc.text(ticket.utr_number || 'N/A', 10, 61);
+
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('PASS STATUS', 10, 68);
+
+        if (isApproved) {
+          doc.setTextColor(74, 222, 128);
+          doc.setFontSize(9.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text('APPROVED (VALID FOR GATE ENTRY)', 10, 74);
+        } else {
+          doc.setTextColor(255, 158, 0);
+          doc.setFontSize(9.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text('PENDING ADMIN VERIFICATION', 10, 74);
+        }
+
+        doc.setFillColor(14, 38, 30);
+        doc.roundedRect(94, 28, 44, 49, 2, 2, 'F');
+        doc.setDrawColor(255, 215, 0);
+        doc.roundedRect(94, 28, 44, 49, 2, 2, 'D');
+
+        doc.setTextColor(255, 215, 0);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PASS CODE', 116, 34, { align: 'center' });
+
+        doc.setFontSize(7.5);
+        doc.setFont('courier', 'bold');
+        doc.text(code, 116, 39, { align: 'center' });
+
+        if (typeof qrcode !== 'undefined') {
+          try {
+            const qr = qrcode(0, 'M');
+            qr.addData(code);
+            qr.make();
+            const count = qr.getModuleCount();
+            const startX = 99; const startY = 41; const qrSize = 34;
+            const cellSize = qrSize / count;
+
+            doc.setFillColor(255, 255, 255);
+            doc.rect(startX - 0.5, startY - 0.5, qrSize + 1, qrSize + 1, 'F');
+
+            doc.setFillColor(0, 0, 0);
+            for (let r = 0; r < count; r++) {
+              for (let c = 0; c < count; c++) {
+                if (qr.isDark(r, c)) {
+                  doc.rect(startX + (c * cellSize), startY + (r * cellSize), cellSize + 0.05, cellSize + 0.05, 'F');
+                }
+              }
+            }
+          } catch(e) {}
+        }
+
+        doc.setDrawColor(255, 215, 0);
+        doc.setLineWidth(0.3);
+        doc.line(10, 80, 138, 80);
+
+        doc.setTextColor(220, 220, 220);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text('VENUE & ENTRY POLICIES:', 10, 85);
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(180, 180, 180);
+        doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
+        doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
+
+        doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+      }
+
+      function downloadTicketAsImage(ticket) {
+        const isApproved = ticket.status === 'APPROVED';
+        const code = isApproved ? ticket.ticket_code : ticket.request_code;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 620; canvas.height = 370;
+
+        ctx.fillStyle = '#06120E'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = isApproved ? '#FFD700' : '#FF6B00'; ctx.lineWidth = 5;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 24px serif'; ctx.fillText('THAKRUTHA 2026', 30, 48);
+        ctx.fillStyle = isApproved ? '#4ADE80' : '#FF9E00'; ctx.font = 'bold 16px monospace';
+        ctx.fillText(isApproved ? `TICKET: ${ticket.ticket_code}` : `REQ: ${ticket.request_code}`, 380, 48);
+
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(30, 68); ctx.lineTo(590, 68); ctx.stroke();
+
+        ctx.fillStyle = '#F7F5EE'; ctx.font = '13px sans-serif'; ctx.fillText('ATTENDEE NAME:', 30, 105);
+        ctx.font = 'bold 18px sans-serif'; ctx.fillText(ticket.name, 30, 130);
+
+        ctx.font = '13px sans-serif'; ctx.fillText('UPI UTR TRANSACTION REF:', 30, 170);
+        ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#FFD700'; ctx.fillText(ticket.utr_number || 'N/A', 30, 195);
+
+        ctx.fillStyle = '#F7F5EE'; ctx.font = '13px sans-serif'; ctx.fillText('STATUS:', 30, 235);
+        ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = isApproved ? '#4ADE80' : '#FF9E00';
+        ctx.fillText(isApproved ? 'APPROVED & VALIDATED' : 'PENDING ADMIN APPROVAL', 30, 260);
+
+        ctx.fillStyle = '#C2BBB0'; ctx.font = '13px sans-serif';
+        ctx.fillText('August 23, 2026 (09:00 AM - 07:00 PM) | Venue Will Be Revealed Soon', 30, 295);
+        ctx.fillText('Strictly Stag Only • No Drugs & Alcohol', 30, 320);
+
+        if (typeof qrcode !== 'undefined') {
+          try {
+            const qr = qrcode(0, 'M'); qr.addData(code); qr.make();
+            const count = qr.getModuleCount(); const qrSize = 130;
+            const cellSize = qrSize / count; const startX = 440; const startY = 100;
+            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(startX - 5, startY - 5, qrSize + 10, qrSize + 10);
+            ctx.fillStyle = '#000000';
+            for (let r = 0; r < count; r++) {
+              for (let c = 0; c < count; c++) {
+                if (qr.isDark(r, c)) ctx.fillRect(startX + (c * cellSize), startY + (r * cellSize), cellSize + 0.5, cellSize + 0.5);
+              }
+            }
+          } catch(e) {}
+        }
+
+        const link = document.createElement('a');
+        link.download = `THAKRUTHA_Pass_${code}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    })();
+  </script>
+</body>
+</html>
