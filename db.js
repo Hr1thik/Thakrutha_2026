@@ -40,14 +40,19 @@ const ADMIN_USERS = [
 ];
 
 async function supabaseFetch(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
   const headers = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
-    'Prefer': 'return=representation',
     ...(options.headers || {})
   };
+
+  if (method !== 'GET') {
+    headers['Prefer'] = 'return=representation';
+  }
+
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const errText = await res.text();

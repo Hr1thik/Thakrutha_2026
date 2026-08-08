@@ -214,72 +214,8 @@
     });
   });
 
-  // Universal Triple-Redundant QR Code Data URL Generator
-  async function generateQrDataUrl(text) {
-    if (!text) return '';
-
-    // 1. Try QRCode.toDataURL (node-qrcode)
-    if (typeof QRCode !== 'undefined' && typeof QRCode.toDataURL === 'function') {
-      try {
-        return await QRCode.toDataURL(text, { width: 300, margin: 1, color: { dark: '#000000', light: '#FFFFFF' } });
-      } catch (e) {}
-    }
-
-    // 2. Try new QRCode(...) (qrcodejs)
-    if (typeof QRCode !== 'undefined' && typeof QRCode === 'function') {
-      try {
-        const div = document.createElement('div');
-        div.style.position = 'absolute';
-        div.style.left = '-9999px';
-        div.style.top = '-9999px';
-        document.body.appendChild(div);
-
-        new QRCode(div, {
-          text: text,
-          width: 250,
-          height: 250,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
-        });
-
-        await new Promise(r => setTimeout(r, 60));
-
-        const img = div.querySelector('img');
-        const canvas = div.querySelector('canvas');
-        let dataUrl = '';
-        if (img && img.src && img.src.startsWith('data:image/')) {
-          dataUrl = img.src;
-        } else if (canvas) {
-          dataUrl = canvas.toDataURL('image/png');
-        }
-
-        if (div.parentNode) document.body.removeChild(div);
-        if (dataUrl) return dataUrl;
-      } catch (e) {
-        console.error('qrcodejs error:', e);
-      }
-    }
-
-    // 3. Fallback via QRServer API
-    try {
-      const fetchUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
-      const resp = await fetch(fetchUrl);
-      const blob = await resp.blob();
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.error('QR API fallback error:', e);
-    }
-
-    return '';
-  }
-
   // Render Pass Card (Handles both PENDING and APPROVED states!)
-  async function renderTicketPass(ticket) {
+  function renderTicketPass(ticket) {
     const isApproved = ticket.status === 'APPROVED';
 
     document.getElementById('passModalHeading').textContent = isApproved 
@@ -307,15 +243,22 @@
     }
 
     const qrData = isApproved ? ticket.ticket_code : ticket.request_code;
-    const qrDataUrl = await generateQrDataUrl(qrData);
-
     const qrContainer = document.getElementById('qrContainer');
-    if (qrContainer && qrDataUrl) {
-      qrContainer.innerHTML = `<img src="${qrDataUrl}" style="width: 130px; height: 130px; display: block; margin: 0 auto; border-radius: 4px;" alt="QR Code">`;
+
+    if (typeof qrcode !== 'undefined' && qrContainer) {
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(qrData);
+        qr.make();
+        const qrDataUrl = qr.createDataURL(6, 2);
+        qrContainer.innerHTML = `<img src="${qrDataUrl}" style="width: 140px; height: 140px; display: block; margin: 0 auto; border-radius: 6px; background: white; padding: 6px; box-shadow: 0 0 15px rgba(255,215,0,0.3);" alt="Ticket QR Code">`;
+      } catch (e) {
+        console.error('Modal QR Error:', e);
+      }
     }
   }
 
-  async function downloadTicketAsImage(ticket) {
+  function downloadTicketAsImage(ticket) {
     const isApproved = ticket.status === 'APPROVED';
     const code = isApproved ? ticket.ticket_code : ticket.request_code;
 
@@ -375,17 +318,34 @@
     ctx.fillText('August 23, 2026 (09:00 AM - 07:00 PM) | Venue Will Be Revealed Soon', 30, 295);
     ctx.fillText('Strictly Stag Only • No Drugs & Alcohol', 30, 320);
 
-    const qrDataUrl = await generateQrDataUrl(code);
-    if (qrDataUrl) {
-      await new Promise(resolve => {
-        const img = new Image();
-        img.onload = function() {
-          ctx.drawImage(img, 440, 100, 130, 130);
-          resolve();
-        };
-        img.onerror = resolve;
-        img.src = qrDataUrl;
-      });
+    if (typeof qrcode !== 'undefined') {
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(code);
+        qr.make();
+
+        const count = qr.getModuleCount();
+        const qrSize = 130;
+        const cellSize = qrSize / count;
+        const startX = 440;
+        const startY = 100;
+
+        // Draw white background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(startX - 5, startY - 5, qrSize + 10, qrSize + 10);
+
+        // Draw black modules
+        ctx.fillStyle = '#000000';
+        for (let r = 0; r < count; r++) {
+          for (let c = 0; c < count; c++) {
+            if (qr.isDark(r, c)) {
+              ctx.fillRect(startX + (c * cellSize), startY + (r * cellSize), cellSize + 0.5, cellSize + 0.5);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('PNG QR error:', e);
+      }
     }
 
     const link = document.createElement('a');
@@ -394,7 +354,7 @@
     link.click();
   }
 
-  async function downloadTicketAsPdf(ticket) {
+  function downloadTicketAsPdf(ticket) {
     const { jsPDF } = window.jspdf || {};
     if (!jsPDF) {
       alert('jsPDF library initializing... Please try again.');
@@ -403,8 +363,6 @@
 
     const isApproved = ticket.status === 'APPROVED';
     const code = isApproved ? ticket.ticket_code : ticket.request_code;
-
-    const qrDataUrl = await generateQrDataUrl(code);
 
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -502,9 +460,55 @@
     doc.setFont('courier', 'bold');
     doc.text(code, 116, 39, { align: 'center' });
 
-    if (qrDataUrl) {
-      doc.addImage(qrDataUrl, 'PNG', 99, 41, 34, 34);
+    // Synchronous Vector QR Code rendering directly onto PDF document stream!
+    if (typeof qrcode !== 'undefined') {
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(code);
+        qr.make();
+
+        const count = qr.getModuleCount();
+        const startX = 99;
+        const startY = 41;
+        const qrSize = 34;
+        const cellSize = qrSize / count;
+
+        // White background card
+        doc.setFillColor(255, 255, 255);
+        doc.rect(startX - 0.5, startY - 0.5, qrSize + 1, qrSize + 1, 'F');
+
+        // Black vector modules
+        doc.setFillColor(0, 0, 0);
+        for (let row = 0; row < count; row++) {
+          for (let col = 0; col < count; col++) {
+            if (qr.isDark(row, col)) {
+              doc.rect(startX + (col * cellSize), startY + (row * cellSize), cellSize + 0.05, cellSize + 0.05, 'F');
+            }
+          }
+        }
+      } catch (qrErr) {
+        console.error('Vector QR error:', qrErr);
+      }
     }
+
+    // 6. Footer Rules & Terms
+    doc.setDrawColor(255, 215, 0);
+    doc.setLineWidth(0.3);
+    doc.line(10, 80, 138, 80);
+
+    doc.setTextColor(220, 220, 220);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VENUE & ENTRY POLICIES:', 10, 85);
+
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
+    doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
+
+    doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+  }
 
     // 6. Footer Rules & Terms
     doc.setDrawColor(255, 215, 0);
