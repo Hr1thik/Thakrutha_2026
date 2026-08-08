@@ -518,7 +518,7 @@ async function approvePayment(requestCode, adminUsername) {
 
     return {
       success: true,
-      message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and sent via Email & SMS to ${result[0].phone}.`,
+      message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and ready for PDF download.`,
       ticket: cleanRecord(result[0])
     };
   }
@@ -528,21 +528,9 @@ async function approvePayment(requestCode, adminUsername) {
 
   const updatedTicket = db.prepare('SELECT * FROM tickets WHERE request_code = ?').get(requestCode);
 
-  // Trigger Real Email & SMS Notification Dispatches
-  sendRealEmail({
-    to: updatedTicket.email,
-    subject: `🎟️ Your THAKRUTHA 2026 E-Ticket Pass (${ticketCode})`,
-    html: `<h2>Dear ${updatedTicket.name},</h2><p>Your payment for THAKRUTHA 2026 has been <strong>APPROVED</strong>!</p><p>Official Ticket Code: <strong>${ticketCode}</strong></p><p>Date: August 23, 2026 | Time: 09:00 AM - 07:00 PM</p>`
-  });
-
-  sendRealSMS({
-    phone: updatedTicket.phone,
-    message: `Hi ${updatedTicket.name}, your THAKRUTHA 2026 ticket (${ticketCode}) is APPROVED! Date: Aug 23, 9 AM - 7 PM.`
-  });
-
   return {
     success: true,
-    message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and sent via Email & SMS to ${updatedTicket.phone}.`,
+    message: `Payment Approved by ${adminUsername}! Ticket ${ticketCode} generated and ready for PDF download.`,
     ticket: cleanRecord(updatedTicket)
   };
 }

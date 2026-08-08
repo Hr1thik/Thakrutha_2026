@@ -510,6 +510,24 @@
     }
   });
 
+  async function stopPhoneCameraScanner() {
+    const wrapper = document.getElementById('cameraScannerWrapper');
+    const readerDiv = document.getElementById('interactiveCameraReader');
+    if (html5QrScanner) {
+      try {
+        if (html5QrScanner.isScanning) {
+          await html5QrScanner.stop();
+        }
+        await html5QrScanner.clear();
+      } catch (e) {
+        console.warn('Camera stop error:', e);
+      }
+      html5QrScanner = null;
+    }
+    if (readerDiv) readerDiv.innerHTML = '';
+    if (wrapper) wrapper.style.display = 'none';
+  }
+
   async function startPhoneCameraScanner() {
     const wrapper = document.getElementById('cameraScannerWrapper');
     const notice = document.getElementById('scanResultNotice');
@@ -519,19 +537,24 @@
       return;
     }
 
-    wrapper.style.display = 'block';
-    notice.innerHTML = '<span style="color: var(--gold-light);">📷 Starting camera... Point camera at E-Ticket QR Code.</span>';
+    await stopPhoneCameraScanner();
 
-    if (html5QrScanner) {
-      stopPhoneCameraScanner();
-    }
+    wrapper.style.display = 'block';
+    notice.innerHTML = '<span style="color: var(--gold-light);">📷 Camera active. Point camera at E-Ticket QR Code.</span>';
 
     html5QrScanner = new Html5Qrcode('interactiveCameraReader');
-    const config = { fps: 15, qrbox: { width: 240, height: 240 } };
 
-    const onScanSuccess = (qrCodeText) => {
+    const config = {
+      fps: 15,
+      qrbox: (w, h) => {
+        const minDim = Math.min(w, h);
+        return { width: Math.floor(minDim * 0.75), height: Math.floor(minDim * 0.75) };
+      }
+    };
+
+    const onScanSuccess = async (qrCodeText) => {
       document.getElementById('scanCodeInput').value = qrCodeText;
-      stopPhoneCameraScanner();
+      await stopPhoneCameraScanner();
       verifyScanCode();
     };
 
@@ -548,23 +571,9 @@
           throw new Error('No camera found on device');
         }
       } catch (err2) {
-        wrapper.style.display = 'none';
+        await stopPhoneCameraScanner();
         alert('Camera access denied or unavailable: ' + (err2.message || err1.message));
       }
-    }
-  }
-
-  function stopPhoneCameraScanner() {
-    const wrapper = document.getElementById('cameraScannerWrapper');
-    if (html5QrScanner) {
-      html5QrScanner.stop().then(() => {
-        html5QrScanner.clear();
-        wrapper.style.display = 'none';
-      }).catch(() => {
-        wrapper.style.display = 'none';
-      });
-    } else {
-      wrapper.style.display = 'none';
     }
   }
 
