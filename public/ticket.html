@@ -2,40 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>THAKRUTHA 2026 — Official E-Ticket Pass</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/animations.css">
   <script src="/js/vendor/qrcode_gen.js"></script>
   <script src="/js/vendor/jspdf.umd.min.js"></script>
 </head>
-<body style="background-color: var(--bg-dark); color: var(--text-primary); padding: 40px 16px;">
+<body style="background-color: var(--bg-dark); color: var(--text-primary); padding: 20px 12px;">
 
   <div class="container" style="max-width: 680px; margin: 0 auto;">
     
+    <!-- Instagram In-App Browser Notice Banner -->
+    <div id="appBrowserNotice" style="display: none; background: rgba(255, 215, 0, 0.15); border: 1.5px solid var(--gold-primary); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px; font-size: 0.88rem; color: var(--gold-light); text-align: left;">
+      <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <span>📱 Open in External Browser for Best Experience</span>
+      </div>
+      If you opened this inside Instagram / WhatsApp, tap the <strong>3 dots (⋮)</strong> or share menu at the top right and select <strong>"Open in Chrome / Safari"</strong> to save your PDF pass directly to your phone storage.
+    </div>
+
     <!-- Top Nav Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-      <a href="/" class="btn btn-outline btn-sm">
-        ← Back to THAKRUTHA 2026
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px;">
+      <a href="/" class="btn btn-outline btn-sm" style="white-space: nowrap;">
+        ← Home
       </a>
-      <div style="font-size: 0.85rem; color: var(--gold-light); font-weight: 700; font-family: monospace;">
-        🎟️ Digital E-Pass Gateway
+      <div style="font-size: 0.85rem; color: var(--gold-light); font-weight: 700; font-family: monospace; text-align: right;">
+        🎟️ Official E-Ticket Gateway
       </div>
     </div>
 
     <!-- Ticket Pass Card Container -->
-    <div id="ticketContainer" style="background: var(--bg-card); border: 2px solid var(--gold-primary); border-radius: var(--radius-lg); padding: 32px; backdrop-filter: blur(16px); box-shadow: 0 0 35px rgba(255,215,0,0.15); text-align: center;">
+    <div id="ticketContainer" style="background: var(--bg-card); border: 2px solid var(--gold-primary); border-radius: var(--radius-lg); padding: 20px; backdrop-filter: blur(16px); box-shadow: 0 0 35px rgba(255,215,0,0.15); text-align: center; overflow: hidden;">
       <div style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 20px;">
         ⌛ Loading ticket pass details...
       </div>
     </div>
 
     <!-- Actions Buttons -->
-    <div id="passActionsGroup" style="margin-top: 24px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; display: none;">
-      <button class="btn btn-primary" id="downloadPdfBtn" style="padding: 14px 28px; font-size: 1rem;">
+    <div id="passActionsGroup" style="margin-top: 24px; display: flex; gap: 14px; flex-direction: column; align-items: center; display: none;">
+      <button class="btn btn-primary" id="downloadPdfBtn" style="width: 100%; max-width: 400px; padding: 16px; font-size: 1.05rem; font-weight: 800;">
         📄 Download Ticket as PDF
       </button>
-      <button class="btn btn-outline" id="downloadPngBtn" style="padding: 14px 28px; font-size: 1rem;">
+      <button class="btn btn-outline" id="downloadPngBtn" style="width: 100%; max-width: 400px; padding: 14px; font-size: 1rem;">
         🖼️ Download Ticket as Image
       </button>
     </div>
@@ -44,6 +52,11 @@
 
   <script>
     (function() {
+      const isAppBrowser = /FBAN|FBAV|Instagram|Line|Twitter|MicroMessenger/i.test(navigator.userAgent);
+      if (isAppBrowser) {
+        document.getElementById('appBrowserNotice').style.display = 'block';
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code') || urlParams.get('q');
       let currentTicket = null;
@@ -96,41 +109,41 @@
         }
 
         container.innerHTML = `
-          <div style="border: 2px solid ${isApproved ? '#FFD700' : '#FF6B00'}; border-radius: var(--radius-md); padding: 24px; background: rgba(6, 18, 14, 0.95); text-align: left; position: relative;">
+          <div style="border: 2px solid ${isApproved ? '#FFD700' : '#FF6B00'}; border-radius: var(--radius-md); padding: 18px 16px; background: rgba(6, 18, 14, 0.95); text-align: left; position: relative; box-sizing: border-box; overflow: hidden;">
             
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 14px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 12px; margin-bottom: 16px; gap: 8px; flex-wrap: wrap;">
               <div>
-                <div style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold-primary);">THAKRUTHA 2026</div>
-                <div style="font-size: 0.8rem; color: var(--gold-light);">Grand Onam Celebration | August 23, 2026</div>
+                <div style="font-family: 'Playfair Display', serif; font-size: 1.35rem; font-weight: 900; color: var(--gold-primary);">THAKRUTHA 2026</div>
+                <div style="font-size: 0.78rem; color: var(--gold-light);">Grand Onam Celebration | Aug 23, 2026</div>
               </div>
-              <div style="text-align: right;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Pass Code</div>
-                <div style="font-family: monospace; font-weight: 800; font-size: 1.1rem; color: ${isApproved ? '#4ADE80' : '#FF9E00'};">${passCode}</div>
+              <div style="text-align: right; margin-left: auto;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Pass Code</div>
+                <div style="font-family: monospace; font-weight: 800; font-size: 1rem; color: ${isApproved ? '#4ADE80' : '#FF9E00'}; white-space: nowrap;">${passCode}</div>
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 20px; align-items: center;">
-              <div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">ATTENDEE NAME</div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: #FFF; margin-bottom: 8px;">${t.name}</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+              <div style="flex: 1 1 200px; min-width: 0; word-break: break-word;">
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">ATTENDEE NAME</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #FFF; margin-bottom: 8px; word-break: break-word;">${t.name}</div>
 
-                <div style="font-size: 0.75rem; color: var(--text-muted);">PHONE NUMBER</div>
-                <div style="font-size: 1rem; font-weight: 800; color: var(--gold-light); margin-bottom: 8px;">+91 ${t.phone || 'N/A'}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">PHONE NUMBER</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--gold-light); margin-bottom: 8px;">+91 ${t.phone || 'N/A'}</div>
 
-                <div style="font-size: 0.75rem; color: var(--text-muted);">PASS TYPE</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: var(--gold-primary); margin-bottom: 8px;">THAKRUTHA Stag Pass</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">PASS TYPE</div>
+                <div style="font-size: 0.9rem; font-weight: 800; color: var(--gold-primary); margin-bottom: 8px;">THAKRUTHA Stag Pass</div>
 
-                <div style="font-size: 0.75rem; color: var(--text-muted);">UPI UTR REF</div>
-                <div style="font-family: monospace; font-size: 0.95rem; color: var(--gold-primary); font-weight: 700;">${t.utr_number || 'N/A'}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">UPI UTR REF</div>
+                <div style="font-family: monospace; font-size: 0.9rem; color: var(--gold-primary); font-weight: 700; word-break: break-all;">${t.utr_number || 'N/A'}</div>
               </div>
 
-              <div style="text-align: center;">
-                ${qrDataUrl ? `<img src="${qrDataUrl}" style="width: 130px; height: 130px; border-radius: 6px; background: white; padding: 6px; box-shadow: 0 0 15px rgba(255,215,0,0.3);" alt="QR Code">` : ''}
-                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Scan at Entry</div>
+              <div style="flex: 0 0 auto; text-align: center; margin: 0 auto;">
+                ${qrDataUrl ? `<img src="${qrDataUrl}" style="max-width: 120px; width: 120px; height: 120px; border-radius: 6px; background: white; padding: 5px; box-shadow: 0 0 15px rgba(255,215,0,0.3); display: block;" alt="QR Code">` : ''}
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">Scan at Entry</div>
               </div>
             </div>
 
-            <div style="border-top: 1px dashed rgba(255,215,0,0.3); margin-top: 18px; padding-top: 12px; font-size: 0.75rem; color: var(--text-secondary);">
+            <div style="border-top: 1px dashed rgba(255,215,0,0.3); margin-top: 16px; padding-top: 10px; font-size: 0.72rem; color: var(--text-secondary);">
               Strictly Stag Entry Only • Valid Govt ID required • Venue: Revealed Soon
             </div>
           </div>
@@ -269,7 +282,17 @@
         doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
         doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
 
-        doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+        const isAppBrowser = /FBAN|FBAV|Instagram|Line|Twitter|MicroMessenger/i.test(navigator.userAgent);
+        if (isAppBrowser) {
+          const pdfBlob = doc.output('blob');
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          const newWin = window.open(pdfUrl, '_blank');
+          if (!newWin) {
+            window.location.href = pdfUrl;
+          }
+        } else {
+          doc.save(`THAKRUTHA_Pass_${code}.pdf`);
+        }
       }
 
       function downloadTicketAsImage(ticket) {
@@ -319,10 +342,20 @@
           } catch(e) {}
         }
 
-        const link = document.createElement('a');
-        link.download = `THAKRUTHA_Pass_${code}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        const isAppBrowser = /FBAN|FBAV|Instagram|Line|Twitter|MicroMessenger/i.test(navigator.userAgent);
+        const dataUrl = canvas.toDataURL('image/png');
+
+        if (isAppBrowser) {
+          const imgWin = window.open(dataUrl, '_blank');
+          if (!imgWin) {
+            window.location.href = dataUrl;
+          }
+        } else {
+          const link = document.createElement('a');
+          link.download = `THAKRUTHA_Pass_${code}.png`;
+          link.href = dataUrl;
+          link.click();
+        }
       }
     })();
   </script>
