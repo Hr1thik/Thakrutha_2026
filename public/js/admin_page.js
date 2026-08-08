@@ -213,7 +213,14 @@
       const allData = await allRes.json();
 
       if (pendingRes.ok && allRes.ok) {
-        renderDashboard(pendingData.pending, allData.tickets, allData.stats);
+        renderDashboard(pendingData.pending || [], allData.tickets || [], allData.stats || {});
+      } else {
+        const errMsg = pendingData.error || pendingData.message || allData.error || allData.message || 'API authentication or database error';
+        console.error('Admin API error:', errMsg);
+        const datastoreEl = document.getElementById('datastoreEngineNotice');
+        if (datastoreEl) {
+          datastoreEl.innerHTML = `<div style="background: rgba(239, 68, 68, 0.2); border: 1.5px solid #EF4444; color: #FCA5A5; padding: 14px; border-radius: var(--radius-md); font-weight: 700; text-align: center;">🛑 Admin API Error: ${errMsg}. Please log out and log in again with authorized admin credentials.</div>`;
+        }
       }
     } catch (err) {
       console.error('Error reloading admin data:', err);

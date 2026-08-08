@@ -3,8 +3,11 @@ const os = require('os');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let rawUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+let rawKey = (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+
+const SUPABASE_URL = rawUrl.replace(/\/+$/, '');
+const SUPABASE_KEY = rawKey;
 
 const useSupabase = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
@@ -435,15 +438,21 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      let data = await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`);
-      if (Array.isArray(data)) return cleanRecord(data);
+      let data = await supabaseFetch(`tickets?select=*&order=id.desc`);
+      if (Array.isArray(data)) {
+        const pending = data.filter(t => (t.status || '').toUpperCase() === 'PENDING');
+        return cleanRecord(pending);
+      }
     } catch (e1) {
-      console.warn('Supabase pending query order=id.desc failed, trying plain query:', e1.message);
+      console.warn('Supabase pending query order=id.desc failed, trying select=*:', e1.message);
       try {
-        let data = await supabaseFetch(`tickets?status=eq.PENDING`);
-        if (Array.isArray(data)) return cleanRecord(data);
+        let data = await supabaseFetch(`tickets?select=*`);
+        if (Array.isArray(data)) {
+          const pending = data.filter(t => (t.status || '').toUpperCase() === 'PENDING');
+          return cleanRecord(pending);
+        }
       } catch (e2) {
-        console.error('Supabase getPendingSubmissions plain query error:', e2.message);
+        console.error('Supabase getPendingSubmissions select=* error:', e2.message);
       }
     }
   }
