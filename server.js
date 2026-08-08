@@ -185,7 +185,7 @@ const server = http.createServer(async (req, res) => {
 
         } catch (err) {
           res.writeHead(500);
-          res.end(JSON.stringify({ error: 'Error updating QR Code: ' + err.message }));
+          res.end(JSON.stringify({ success: false, message: 'Error updating QR Code: ' + err.message }));
         }
       });
       return;

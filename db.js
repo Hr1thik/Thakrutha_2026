@@ -45,16 +45,15 @@ const ADMIN_USERS = [
 async function supabaseFetch(endpoint, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const defaultPrefer = method !== 'GET' ? 'return=representation' : undefined;
+
   const headers = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
+    ...(defaultPrefer ? { 'Prefer': defaultPrefer } : {}),
     ...(options.headers || {})
   };
-
-  if (method !== 'GET') {
-    headers['Prefer'] = 'return=representation';
-  }
 
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
@@ -183,7 +182,7 @@ async function setSetting(key, value) {
     try {
       await supabaseFetch(`settings`, {
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify({ key, value })
       });
       return;

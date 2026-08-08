@@ -176,7 +176,7 @@
           alert('✅ ' + data.message);
           loadSettingsData();
         } else {
-          alert('Update failed: ' + data.message);
+          alert('Update failed: ' + (data.message || data.error || 'Unknown server error'));
         }
       } catch (err) {
         alert('Network Error updating QR code: ' + err.message);
