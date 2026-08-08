@@ -216,6 +216,7 @@
 
   // Render Pass Card (Handles both PENDING and APPROVED states!)
   function renderTicketPass(ticket) {
+    currentRecord = ticket;
     const isApproved = ticket.status === 'APPROVED';
 
     document.getElementById('passModalHeading').textContent = isApproved 

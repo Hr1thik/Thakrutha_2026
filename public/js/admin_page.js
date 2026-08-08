@@ -479,7 +479,7 @@
   document.getElementById('startCameraBtn')?.addEventListener('click', startPhoneCameraScanner);
   document.getElementById('stopCameraBtn')?.addEventListener('click', stopPhoneCameraScanner);
 
-  function startPhoneCameraScanner() {
+  async function startPhoneCameraScanner() {
     const wrapper = document.getElementById('cameraScannerWrapper');
     const notice = document.getElementById('scanResultNotice');
 
@@ -498,23 +498,29 @@
     html5QrScanner = new Html5Qrcode('interactiveCameraReader');
     const config = { fps: 15, qrbox: { width: 240, height: 240 } };
 
-    html5QrScanner.start(
-      { facingMode: 'environment' }, // Back phone camera!
-      config,
-      (qrCodeText) => {
-        // QR Code Scanned successfully!
-        document.getElementById('scanCodeInput').value = qrCodeText;
-        stopPhoneCameraScanner();
-        verifyScanCode();
-      },
-      (err) => {
-        // Frame parse loop
+    const onScanSuccess = (qrCodeText) => {
+      document.getElementById('scanCodeInput').value = qrCodeText;
+      stopPhoneCameraScanner();
+      verifyScanCode();
+    };
+
+    try {
+      await html5QrScanner.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
+    } catch (err1) {
+      console.warn('facingMode environment start failed, trying camera list:', err1);
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear')) || cameras[cameras.length - 1];
+          await html5QrScanner.start(backCam.id, config, onScanSuccess, () => {});
+        } else {
+          throw new Error('No camera found on device');
+        }
+      } catch (err2) {
+        wrapper.style.display = 'none';
+        alert('Camera access denied or unavailable: ' + (err2.message || err1.message));
       }
-    ).catch(err => {
-      console.warn('Camera start error:', err);
-      wrapper.style.display = 'none';
-      alert('Camera access denied or unavailable. Please enable camera permissions in your phone browser settings.');
-    });
+    }
   }
 
   function stopPhoneCameraScanner() {
