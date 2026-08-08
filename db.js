@@ -206,45 +206,58 @@ function isValidAdmin(username, password) {
 const TOTAL_CAPACITY = 500;
 
 async function getStats() {
+  let approvedCount = 0;
+  let pendingCount = 0;
+  let checkedInCount = 0;
+  let engine = useSupabase ? 'Supabase Cloud DB' : 'Local SQLite Database';
+
   if (useSupabase) {
     try {
-      const approved = await supabaseFetch(`tickets?status=eq.APPROVED&select=id`, { headers: { 'Prefer': 'count=exact' } });
-      const pending = await supabaseFetch(`tickets?status=eq.PENDING&select=id`, { headers: { 'Prefer': 'count=exact' } });
-      const checkedIn = await supabaseFetch(`tickets?status=eq.APPROVED&checked_in=eq.1&select=id`, { headers: { 'Prefer': 'count=exact' } });
+      const all = await supabaseFetch(`tickets?select=id,status,checked_in`);
+      if (Array.isArray(all)) {
+        approvedCount = all.filter(t => t.status === 'APPROVED').length;
+        pendingCount = all.filter(t => t.status === 'PENDING').length;
+        checkedInCount = all.filter(t => t.status === 'APPROVED' && Number(t.checked_in) === 1).length;
 
-      const approvedCount = approved.length;
-      const pendingCount = pending.length;
-      const checkedInCount = checkedIn.length;
-      const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
-      const remainingPercentage = Math.round((ticketsRemaining / TOTAL_CAPACITY) * 100);
+        const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
+        const remainingPercentage = Math.round((ticketsRemaining / TOTAL_CAPACITY) * 100);
 
-      return {
-        totalCapacity: TOTAL_CAPACITY,
-        ticketsBooked: approvedCount,
-        pendingApprovals: pendingCount,
-        ticketsRemaining,
-        remainingPercentage,
-        checkedInCount,
-        totalRevenue: approvedCount * 1100
-      };
+        return {
+          datastoreEngine: engine,
+          totalCapacity: TOTAL_CAPACITY,
+          ticketsBooked: approvedCount,
+          pendingApprovals: pendingCount,
+          ticketsRemaining,
+          remainingPercentage,
+          checkedInCount,
+          totalRevenue: approvedCount * 1100
+        };
+      }
     } catch (e) {
-      console.error('Supabase getStats error:', e.message);
+      console.warn('Supabase getStats fallback to local:', e.message);
     }
   }
 
-  const approvedStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'APPROVED'");
-  const { count: approvedCount } = approvedStmt.get();
+  if (db) {
+    try {
+      const approvedStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'APPROVED'");
+      approvedCount = approvedStmt.get() ? approvedStmt.get().count : 0;
 
-  const pendingStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'PENDING'");
-  const { count: pendingCount } = pendingStmt.get();
+      const pendingStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'PENDING'");
+      pendingCount = pendingStmt.get() ? pendingStmt.get().count : 0;
 
-  const checkedInStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'APPROVED' AND checked_in = 1");
-  const { count: checkedInCount } = checkedInStmt.get();
+      const checkedInStmt = db.prepare("SELECT COUNT(*) as count FROM tickets WHERE status = 'APPROVED' AND checked_in = 1");
+      checkedInCount = checkedInStmt.get() ? checkedInStmt.get().count : 0;
+    } catch (e) {
+      console.error('SQLite getStats error:', e.message);
+    }
+  }
 
   const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
   const remainingPercentage = Math.round((ticketsRemaining / TOTAL_CAPACITY) * 100);
 
   return {
+    datastoreEngine: engine,
     totalCapacity: TOTAL_CAPACITY,
     ticketsBooked: approvedCount,
     pendingApprovals: pendingCount,
@@ -417,29 +430,57 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      const data = await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`);
-      return cleanRecord(data);
-    } catch (e) {
-      console.error('Supabase getPendingSubmissions error:', e.message);
-      return [];
+      let data = await supabaseFetch(`tickets?status=eq.PENDING&order=id.desc`);
+      if (Array.isArray(data)) return cleanRecord(data);
+    } catch (e1) {
+      console.warn('Supabase pending query order=id.desc failed, trying plain query:', e1.message);
+      try {
+        let data = await supabaseFetch(`tickets?status=eq.PENDING`);
+        if (Array.isArray(data)) return cleanRecord(data);
+      } catch (e2) {
+        console.error('Supabase getPendingSubmissions plain query error:', e2.message);
+      }
     }
   }
-  const stmt = db.prepare("SELECT * FROM tickets WHERE status = 'PENDING' ORDER BY id DESC");
-  return cleanRecord(stmt.all());
+
+  if (db) {
+    try {
+      const stmt = db.prepare("SELECT * FROM tickets WHERE status = 'PENDING' ORDER BY id DESC");
+      return cleanRecord(stmt.all());
+    } catch (e) {
+      console.error('SQLite getPendingSubmissions error:', e.message);
+    }
+  }
+
+  return [];
 }
 
 async function getAllTickets() {
   if (useSupabase) {
     try {
-      const data = await supabaseFetch(`tickets?order=id.desc`);
-      return cleanRecord(data);
-    } catch (e) {
-      console.error('Supabase getAllTickets error:', e.message);
-      return [];
+      let data = await supabaseFetch(`tickets?order=id.desc`);
+      if (Array.isArray(data)) return cleanRecord(data);
+    } catch (e1) {
+      console.warn('Supabase getAllTickets order=id.desc failed, trying plain query:', e1.message);
+      try {
+        let data = await supabaseFetch(`tickets`);
+        if (Array.isArray(data)) return cleanRecord(data);
+      } catch (e2) {
+        console.error('Supabase getAllTickets plain query error:', e2.message);
+      }
     }
   }
-  const stmt = db.prepare("SELECT * FROM tickets ORDER BY id DESC");
-  return cleanRecord(stmt.all());
+
+  if (db) {
+    try {
+      const stmt = db.prepare("SELECT * FROM tickets ORDER BY id DESC");
+      return cleanRecord(stmt.all());
+    } catch (e) {
+      console.error('SQLite getAllTickets error:', e.message);
+    }
+  }
+
+  return [];
 }
 
 async function approvePayment(requestCode, adminUsername) {

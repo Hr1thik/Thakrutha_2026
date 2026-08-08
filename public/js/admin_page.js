@@ -227,6 +227,15 @@
     document.getElementById('admCheckedIn').textContent = stats.checkedInCount;
     document.getElementById('admRevenue').textContent = `₹${stats.totalRevenue}`;
 
+    const datastoreEl = document.getElementById('datastoreEngineNotice');
+    if (datastoreEl && stats.datastoreEngine) {
+      if (stats.datastoreEngine.includes('Supabase')) {
+        datastoreEl.innerHTML = `<div style="background: rgba(74, 222, 128, 0.15); border: 1px solid #4ADE80; color: #4ADE80; padding: 10px; border-radius: var(--radius-md); font-weight: 700;">🟢 Datastore Engine: Connected to Supabase Cloud Database</div>`;
+      } else {
+        datastoreEl.innerHTML = `<div style="background: rgba(255, 158, 0, 0.15); border: 1.5px solid #FF9E00; color: #FFD700; padding: 12px; border-radius: var(--radius-md); font-weight: 700; line-height: 1.5;">⚠️ Datastore Engine: Running in Local Serverless Fallback (/tmp/thakrutha.db)<br><span style="font-size: 0.82rem; font-weight: 400; color: var(--text-secondary);">Add <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> to your Vercel Project Environment Variables so attendee submissions persist across serverless instances!</span></div>`;
+      }
+    }
+
     // 1. Pending Approvals Table
     const pendingTbody = document.getElementById('adminPendingTableBody');
     if (pendingTbody) {
