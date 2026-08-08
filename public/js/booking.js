@@ -301,17 +301,17 @@
     ctx.fillText(ticket.name, 30, 130);
 
     ctx.font = '13px sans-serif';
-    ctx.fillText('UPI UTR TRANSACTION REF:', 30, 170);
+    ctx.fillText('PHONE NUMBER:', 30, 170);
     ctx.font = 'bold 16px monospace';
     ctx.fillStyle = '#FFD700';
-    ctx.fillText(ticket.utr_number || 'N/A', 30, 195);
+    ctx.fillText(`+91 ${ticket.phone || 'N/A'}`, 30, 195);
 
     ctx.fillStyle = '#F7F5EE';
     ctx.font = '13px sans-serif';
-    ctx.fillText('STATUS:', 30, 235);
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillStyle = isApproved ? '#4ADE80' : '#FF9E00';
-    ctx.fillText(isApproved ? 'APPROVED & VALIDATED' : 'PENDING ADMIN APPROVAL', 30, 260);
+    ctx.fillText('UPI UTR TRANSACTION REF:', 30, 235);
+    ctx.font = 'bold 16px monospace';
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText(ticket.utr_number || 'N/A', 30, 260);
 
     ctx.fillStyle = '#C2BBB0';
     ctx.font = '13px sans-serif';
@@ -411,12 +411,12 @@
     doc.setTextColor(200, 200, 200);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('PASS TYPE & MEAL', 10, 44);
+    doc.text('PASS TYPE', 10, 44);
 
     doc.setTextColor(255, 215, 0);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('THAKRUTHA Stag Pass (100% Veg Sadhya)', 10, 49);
+    doc.text('THAKRUTHA Stag Pass', 10, 49);
 
     doc.setTextColor(200, 200, 200);
     doc.setFontSize(7);
@@ -431,19 +431,12 @@
     doc.setTextColor(200, 200, 200);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('PASS STATUS', 10, 68);
+    doc.text('ATTENDEE PHONE', 10, 68);
 
-    if (isApproved) {
-      doc.setTextColor(74, 222, 128); // Green
-      doc.setFontSize(9.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text('APPROVED (VALID FOR GATE ENTRY)', 10, 74);
-    } else {
-      doc.setTextColor(255, 158, 0); // Orange
-      doc.setFontSize(9.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PENDING ADMIN VERIFICATION', 10, 74);
-    }
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ticket.phone ? `+91 ${ticket.phone}` : 'N/A', 10, 74);
 
     // 5. Right Column: QR Code Box
     doc.setFillColor(14, 38, 30);

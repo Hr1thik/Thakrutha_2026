@@ -112,15 +112,16 @@
             <div style="display: grid; grid-template-columns: 1fr 140px; gap: 20px; align-items: center;">
               <div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">ATTENDEE NAME</div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: #FFF; margin-bottom: 10px;">${t.name}</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #FFF; margin-bottom: 8px;">${t.name}</div>
+
+                <div style="font-size: 0.75rem; color: var(--text-muted);">PHONE NUMBER</div>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--gold-light); margin-bottom: 8px;">+91 ${t.phone || 'N/A'}</div>
+
+                <div style="font-size: 0.75rem; color: var(--text-muted);">PASS TYPE</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--gold-primary); margin-bottom: 8px;">THAKRUTHA Stag Pass</div>
 
                 <div style="font-size: 0.75rem; color: var(--text-muted);">UPI UTR REF</div>
-                <div style="font-family: monospace; font-size: 0.95rem; color: var(--gold-primary); font-weight: 700; margin-bottom: 10px;">${t.utr_number || 'N/A'}</div>
-
-                <div style="font-size: 0.75rem; color: var(--text-muted);">PASS STATUS</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: ${isApproved ? '#4ADE80' : '#FF9E00'};">
-                  ${isApproved ? '✅ APPROVED & VALIDATED' : '⏳ PENDING ADMIN APPROVAL'}
-                </div>
+                <div style="font-family: monospace; font-size: 0.95rem; color: var(--gold-primary); font-weight: 700;">${t.utr_number || 'N/A'}</div>
               </div>
 
               <div style="text-align: center;">
@@ -190,12 +191,12 @@
         doc.setTextColor(200, 200, 200);
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        doc.text('PASS TYPE & MEAL', 10, 44);
+        doc.text('PASS TYPE', 10, 44);
 
         doc.setTextColor(255, 215, 0);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
-        doc.text('THAKRUTHA Stag Pass (100% Veg Sadhya)', 10, 49);
+        doc.text('THAKRUTHA Stag Pass', 10, 49);
 
         doc.setTextColor(200, 200, 200);
         doc.setFontSize(7);
@@ -210,19 +211,12 @@
         doc.setTextColor(200, 200, 200);
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        doc.text('PASS STATUS', 10, 68);
+        doc.text('ATTENDEE PHONE', 10, 68);
 
-        if (isApproved) {
-          doc.setTextColor(74, 222, 128);
-          doc.setFontSize(9.5);
-          doc.setFont('helvetica', 'bold');
-          doc.text('APPROVED (VALID FOR GATE ENTRY)', 10, 74);
-        } else {
-          doc.setTextColor(255, 158, 0);
-          doc.setFontSize(9.5);
-          doc.setFont('helvetica', 'bold');
-          doc.text('PENDING ADMIN VERIFICATION', 10, 74);
-        }
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text(ticket.phone ? `+91 ${ticket.phone}` : 'N/A', 10, 74);
 
         doc.setFillColor(14, 38, 30);
         doc.roundedRect(94, 28, 44, 49, 2, 2, 'F');
@@ -300,12 +294,11 @@
         ctx.fillStyle = '#F7F5EE'; ctx.font = '13px sans-serif'; ctx.fillText('ATTENDEE NAME:', 30, 105);
         ctx.font = 'bold 18px sans-serif'; ctx.fillText(ticket.name, 30, 130);
 
-        ctx.font = '13px sans-serif'; ctx.fillText('UPI UTR TRANSACTION REF:', 30, 170);
-        ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#FFD700'; ctx.fillText(ticket.utr_number || 'N/A', 30, 195);
+        ctx.font = '13px sans-serif'; ctx.fillText('PHONE NUMBER:', 30, 170);
+        ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#FFD700'; ctx.fillText(`+91 ${ticket.phone || 'N/A'}`, 30, 195);
 
-        ctx.fillStyle = '#F7F5EE'; ctx.font = '13px sans-serif'; ctx.fillText('STATUS:', 30, 235);
-        ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = isApproved ? '#4ADE80' : '#FF9E00';
-        ctx.fillText(isApproved ? 'APPROVED & VALIDATED' : 'PENDING ADMIN APPROVAL', 30, 260);
+        ctx.fillStyle = '#F7F5EE'; ctx.font = '13px sans-serif'; ctx.fillText('UPI UTR TRANSACTION REF:', 30, 235);
+        ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#FFD700'; ctx.fillText(ticket.utr_number || 'N/A', 30, 260);
 
         ctx.fillStyle = '#C2BBB0'; ctx.font = '13px sans-serif';
         ctx.fillText('August 23, 2026 (09:00 AM - 07:00 PM) | Venue Will Be Revealed Soon', 30, 295);
