@@ -479,6 +479,27 @@
   document.getElementById('startCameraBtn')?.addEventListener('click', startPhoneCameraScanner);
   document.getElementById('stopCameraBtn')?.addEventListener('click', stopPhoneCameraScanner);
 
+  document.getElementById('uploadQrFileInput')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const notice = document.getElementById('scanResultNotice');
+    notice.innerHTML = '<span style="color: var(--gold-light);">⌛ Scanning QR Code from image...</span>';
+
+    try {
+      if (!window.Html5Qrcode) {
+        alert('Scanner engine initializing... Please try again in 2 seconds.');
+        return;
+      }
+      const scanner = new Html5Qrcode('interactiveCameraReader');
+      const qrCodeText = await scanner.scanFile(file, true);
+      document.getElementById('scanCodeInput').value = qrCodeText;
+      verifyScanCode();
+    } catch (err) {
+      notice.innerHTML = `<div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 12px; border-radius: var(--radius-md);">❌ Could not detect QR code in uploaded image. Please ensure the QR code is clear or enter the code manually.</div>`;
+    }
+  });
+
   async function startPhoneCameraScanner() {
     const wrapper = document.getElementById('cameraScannerWrapper');
     const notice = document.getElementById('scanResultNotice');

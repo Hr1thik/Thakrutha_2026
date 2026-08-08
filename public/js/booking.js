@@ -511,25 +511,6 @@
     doc.save(`THAKRUTHA_Pass_${code}.pdf`);
   }
 
-    // 6. Footer Rules & Terms
-    doc.setDrawColor(255, 215, 0);
-    doc.setLineWidth(0.3);
-    doc.line(10, 80, 138, 80);
-
-    doc.setTextColor(220, 220, 220);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.text('VENUE & ENTRY POLICIES:', 10, 85);
-
-    doc.setFontSize(6.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(180, 180, 180);
-    doc.text('• Strictly Stag Entry Only. Valid Govt Photo ID required at gate screening.', 10, 89);
-    doc.text('• Strict Zero Tolerance Policy: No Drugs & No Alcohol allowed inside venue.', 10, 93);
-
-    doc.save(`THAKRUTHA_Pass_${code}.pdf`);
-  }
-
   window.renderTicketPass = renderTicketPass;
   window.downloadTicketAsPdf = downloadTicketAsPdf;
 })();

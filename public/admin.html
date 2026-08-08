@@ -170,9 +170,15 @@
             <h4 style="color: var(--gold-light); font-size: 1.3rem; margin-bottom: 4px;">🎟️ Phone Camera Gate QR Scanner</h4>
             <p style="font-size: 0.88rem; color: var(--text-secondary);">Point your phone's camera at an attendee's E-Ticket QR Code to verify entry instantly.</p>
           </div>
-          <button class="btn btn-primary" id="startCameraBtn">
-            <i data-lucide="camera"></i> <span>📷 Start Phone Camera Scanner</span>
-          </button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="startCameraBtn">
+              <i data-lucide="camera"></i> <span>📷 Start Camera Scanner</span>
+            </button>
+            <label class="btn btn-outline" style="cursor: pointer; margin: 0; display: inline-flex; align-items: center; gap: 6px;">
+              <i data-lucide="image"></i> <span>🖼️ Upload QR Image</span>
+              <input type="file" id="uploadQrFileInput" accept="image/*" style="display: none;">
+            </label>
+          </div>
         </div>
 
         <!-- Live Camera Viewfinder Box -->
