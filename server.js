@@ -371,6 +371,28 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // 13. Admin All Tickets
+    if (pathname === '/api/admin/tickets' && req.method === 'GET') {
+      const username = url.searchParams.get('username');
+      const password = url.searchParams.get('password');
+
+      if (!db.isValidAdmin(username, password)) {
+        res.writeHead(403);
+        res.end(JSON.stringify({ error: 'Unauthorized Admin Credentials.' }));
+        return;
+      }
+      try {
+        const tickets = await db.getAllTickets();
+        const stats = await db.getStats();
+        res.writeHead(200);
+        res.end(JSON.stringify({ tickets, stats }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'API Endpoint not found.' }));
     return;
