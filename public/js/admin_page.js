@@ -267,10 +267,12 @@
       }
     }
 
-    // 1. Pending Approvals Table
+    // 1. Pending Approvals Table & Mobile Cards
     const pendingTbody = document.getElementById('adminPendingTableBody');
-    if (pendingTbody) {
-      if (!pendingList || pendingList.length === 0) {
+    const pendingMobileContainer = document.getElementById('adminPendingMobileCards');
+
+    if (!pendingList || pendingList.length === 0) {
+      if (pendingTbody) {
         pendingTbody.innerHTML = `
           <tr>
             <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">
@@ -278,84 +280,119 @@
             </td>
           </tr>
         `;
-      } else {
-        pendingTbody.innerHTML = pendingList.map(item => `
-          <tr style="border-bottom: 1px solid var(--border-gold);">
-            <td style="padding: 14px; font-weight: 800; font-family: monospace; color: var(--marigold-bright);">${item.request_code}</td>
-            <td style="padding: 14px; font-weight: 600;">${item.name}</td>
-            <td style="padding: 14px; font-size: 0.88rem; color: var(--text-secondary);">${item.phone}<br>${item.email}</td>
-            <td style="padding: 14px; font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 800;">${item.utr_number}</td>
-            <td style="padding: 14px; text-align: center;">
-              <button class="btn btn-secondary btn-sm btn-view-screenshot" data-name="${item.name}" data-code="${item.request_code}" style="padding: 6px 12px; font-size: 0.82rem;">
-                🖼️ View Proof
-              </button>
-            </td>
-            <td style="padding: 14px; text-align: center;">
-              <button class="btn btn-primary btn-sm btn-approve-utr" data-code="${item.request_code}" style="padding: 8px 16px; font-size: 0.85rem; margin-right: 8px;">
-                ✅ Approve
-              </button>
-              <button class="btn btn-outline btn-sm btn-reject-utr" data-code="${item.request_code}" style="padding: 8px 14px; font-size: 0.85rem; color: #EF4444; border-color: #EF4444;">
-                ❌ Reject
-              </button>
-            </td>
-          </tr>
-        `).join('');
-
-        document.querySelectorAll('.btn-view-screenshot').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const name = e.currentTarget.getAttribute('data-name');
-            const code = e.currentTarget.getAttribute('data-code');
-
-            const modal = document.getElementById('screenshotProofModal');
-            const imgEl = document.getElementById('proofModalImg');
-            const subText = document.getElementById('proofModalSubText');
-
-            if (modal && imgEl) {
-              if (subText) subText.textContent = `⌛ Loading Payment Receipt Proof for ${name} (${code})...`;
-              imgEl.src = '';
-              modal.classList.add('active');
-
-              try {
-                const res = await fetch(`/api/tickets/lookup?q=${encodeURIComponent(code)}`);
-                const data = await res.json();
-                if (data.tickets && data.tickets[0] && data.tickets[0].payment_screenshot) {
-                  imgEl.src = data.tickets[0].payment_screenshot;
-                  if (subText) subText.textContent = `Payment Receipt Proof for ${name} (${code})`;
-                } else {
-                  alert('No screenshot proof found for this submission.');
-                  modal.classList.remove('active');
-                }
-              } catch (err) {
-                alert('Error fetching payment screenshot: ' + err.message);
-              }
-            }
-          });
-        });
-
-        document.querySelectorAll('.btn-approve-utr').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const requestCode = e.currentTarget.getAttribute('data-code');
-            approveSubmission(requestCode);
-          });
-        });
-
-        document.querySelectorAll('.btn-reject-utr').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const requestCode = e.currentTarget.getAttribute('data-code');
-            rejectSubmission(requestCode);
-          });
-        });
       }
+      if (pendingMobileContainer) {
+        pendingMobileContainer.innerHTML = `
+          <div style="background: var(--bg-card); border: 1px solid var(--border-gold); padding: 24px; border-radius: var(--radius-md); text-align: center; color: var(--text-muted);">
+            🎉 No pending payment approvals! All submissions are reviewed.
+          </div>
+        `;
+      }
+    } else {
+      const pendingRowHtml = pendingList.map(item => `
+        <tr style="border-bottom: 1px solid var(--border-gold);">
+          <td style="padding: 14px; font-weight: 800; font-family: monospace; color: var(--marigold-bright);">${item.request_code}</td>
+          <td style="padding: 14px; font-weight: 600;">${item.name}</td>
+          <td style="padding: 14px; font-size: 0.88rem; color: var(--text-secondary);">${item.phone}<br>${item.email}</td>
+          <td style="padding: 14px; font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 800;">${item.utr_number}</td>
+          <td style="padding: 14px; text-align: center;">
+            <button class="btn btn-secondary btn-sm btn-view-screenshot" data-name="${item.name}" data-code="${item.request_code}" style="padding: 6px 12px; font-size: 0.82rem;">
+              🖼️ View Proof
+            </button>
+          </td>
+          <td style="padding: 14px; text-align: center;">
+            <button class="btn btn-primary btn-sm btn-approve-utr" data-code="${item.request_code}" style="padding: 8px 16px; font-size: 0.85rem; margin-right: 8px;">
+              ✅ Approve
+            </button>
+            <button class="btn btn-outline btn-sm btn-reject-utr" data-code="${item.request_code}" style="padding: 8px 14px; font-size: 0.85rem; color: #EF4444; border-color: #EF4444;">
+              ❌ Reject
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      const pendingCardsHtml = pendingList.map(item => `
+        <div class="admin-mobile-card" style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-dark);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-family: monospace; font-size: 0.88rem; font-weight: 800; color: var(--marigold-bright); background: rgba(255, 107, 0, 0.15); padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--marigold-orange);">${item.request_code}</span>
+            <span style="font-size: 0.78rem; color: var(--gold-light); font-weight: 700;">⏳ Pending Approval</span>
+          </div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #FFF; margin-bottom: 4px;">${item.name}</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">📞 ${item.phone}<br>✉️ ${item.email}</div>
+          <div style="background: rgba(6, 18, 14, 0.85); border: 1.5px solid var(--gold-primary); padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">UPI UTR Ref:</span>
+            <span style="font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 900;">${item.utr_number}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary btn-sm btn-view-screenshot" data-name="${item.name}" data-code="${item.request_code}" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700;">🖼️ View Payment Proof</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm btn-approve-utr" data-code="${item.request_code}" style="flex: 1; justify-content: center; padding: 12px; font-size: 0.9rem; font-weight: 800;">✅ Approve</button>
+              <button class="btn btn-outline btn-sm btn-reject-utr" data-code="${item.request_code}" style="flex: 1; justify-content: center; padding: 12px; font-size: 0.9rem; color: #EF4444; border-color: #EF4444;">❌ Reject</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      if (pendingTbody) pendingTbody.innerHTML = pendingRowHtml;
+      if (pendingMobileContainer) pendingMobileContainer.innerHTML = pendingCardsHtml;
+
+      document.querySelectorAll('.btn-view-screenshot').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const name = e.currentTarget.getAttribute('data-name');
+          const code = e.currentTarget.getAttribute('data-code');
+
+          const modal = document.getElementById('screenshotProofModal');
+          const imgEl = document.getElementById('proofModalImg');
+          const subText = document.getElementById('proofModalSubText');
+
+          if (modal && imgEl) {
+            if (subText) subText.textContent = `⌛ Loading Payment Receipt Proof for ${name} (${code})...`;
+            imgEl.src = '';
+            modal.classList.add('active');
+
+            try {
+              const res = await fetch(`/api/tickets/lookup?q=${encodeURIComponent(code)}`);
+              const data = await res.json();
+              if (data.tickets && data.tickets[0] && data.tickets[0].payment_screenshot) {
+                imgEl.src = data.tickets[0].payment_screenshot;
+                if (subText) subText.textContent = `Payment Receipt Proof for ${name} (${code})`;
+              } else {
+                alert('No screenshot proof found for this submission.');
+                modal.classList.remove('active');
+              }
+            } catch (err) {
+              alert('Error fetching payment screenshot: ' + err.message);
+            }
+          }
+        });
+      });
+
+      document.querySelectorAll('.btn-approve-utr').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const requestCode = e.currentTarget.getAttribute('data-code');
+          approveSubmission(requestCode);
+        });
+      });
+
+      document.querySelectorAll('.btn-reject-utr').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const requestCode = e.currentTarget.getAttribute('data-code');
+          rejectSubmission(requestCode);
+        });
+      });
     }
 
-    // 2. Approved Guest List Table
+    // 2. Approved Guest List Table & Mobile Cards
     const guestTbody = document.getElementById('adminGuestListBody');
-    if (guestTbody && allTickets) {
+    const guestMobileContainer = document.getElementById('adminGuestMobileCards');
+
+    if (allTickets) {
       const approvedTickets = allTickets.filter(t => t.status === 'APPROVED');
       if (approvedTickets.length === 0) {
-        guestTbody.innerHTML = '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-muted);">No approved tickets yet.</td></tr>';
+        if (guestTbody) guestTbody.innerHTML = '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-muted);">No approved tickets yet.</td></tr>';
+        if (guestMobileContainer) guestMobileContainer.innerHTML = '<div style="background: var(--bg-card); border: 1px solid var(--border-gold); padding: 20px; border-radius: var(--radius-md); text-align: center; color: var(--text-muted);">No approved tickets yet.</div>';
       } else {
-        guestTbody.innerHTML = approvedTickets.map(t => `
+        const guestRowHtml = approvedTickets.map(t => `
           <tr style="border-bottom: 1px solid var(--border-gold);">
             <td style="padding: 12px; font-weight: 800; font-family: monospace; color: var(--gold-primary);">${t.ticket_code}</td>
             <td style="padding: 12px; font-weight: 600;">${t.name}</td>
@@ -375,6 +412,21 @@
             </td>
           </tr>
         `).join('');
+
+        const guestCardsHtml = approvedTickets.map(t => `
+          <div class="admin-mobile-card" style="background: var(--bg-card); border: 1.5px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-dark); margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-family: monospace; font-size: 0.95rem; font-weight: 900; color: var(--gold-primary); background: rgba(255, 215, 0, 0.1); padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--border-gold);">${t.ticket_code}</span>
+              ${t.checked_in === 1 ? '<span style="color: #4ADE80; font-size: 0.8rem; font-weight: 800;">✅ Checked-In</span>' : '<span style="color: var(--marigold-bright); font-size: 0.8rem; font-weight: 700;">⏳ Active Pass</span>'}
+            </div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #FFF; margin-bottom: 4px;">${t.name}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">📞 ${t.phone}<br>✉️ ${t.email}</div>
+            <button class="btn btn-outline btn-sm btn-delete-ticket" data-code="${t.ticket_code || t.request_code}" style="width: 100%; justify-content: center; color: #EF4444; border-color: #EF4444; padding: 10px; font-weight: 700;">🗑️ Delete / Revoke Pass</button>
+          </div>
+        `).join('');
+
+        if (guestTbody) guestTbody.innerHTML = guestRowHtml;
+        if (guestMobileContainer) guestMobileContainer.innerHTML = guestCardsHtml;
 
         document.querySelectorAll('.btn-delete-ticket').forEach(btn => {
           btn.addEventListener('click', (e) => {

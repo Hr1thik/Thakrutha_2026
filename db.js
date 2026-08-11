@@ -444,7 +444,11 @@ async function getPendingSubmissions() {
     try {
       let data = await supabaseFetch(`tickets?status=eq.PENDING&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
       if (Array.isArray(data)) {
-        const pending = data.filter(t => (t.name && t.name.trim() !== ''));
+        const pending = data.filter(t => 
+          (t.status || '').trim().toUpperCase() === 'PENDING' &&
+          (t.name && t.name.trim() !== '' && !t.name.toLowerCase().startsWith('test')) &&
+          (t.utr_number && t.utr_number.trim() !== '')
+        );
         return cleanRecord(pending);
       }
     } catch (e1) {
@@ -454,7 +458,8 @@ async function getPendingSubmissions() {
         if (Array.isArray(data)) {
           const pending = data.filter(t => 
             (t.status || '').trim().toUpperCase() === 'PENDING' &&
-            (t.name && t.name.trim() !== '')
+            (t.name && t.name.trim() !== '' && !t.name.toLowerCase().startsWith('test')) &&
+            (t.utr_number && t.utr_number.trim() !== '')
           );
           return cleanRecord(pending);
         }
@@ -466,7 +471,7 @@ async function getPendingSubmissions() {
 
   if (db) {
     try {
-      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' ORDER BY id DESC");
+      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' AND utr_number IS NOT NULL AND utr_number != '' ORDER BY id DESC");
       return cleanRecord(stmt.all());
     } catch (e) {
       console.error('SQLite getPendingSubmissions error:', e.message);
@@ -480,12 +485,24 @@ async function getAllTickets() {
   if (useSupabase) {
     try {
       let data = await supabaseFetch(`tickets?select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
-      if (Array.isArray(data)) return cleanRecord(data);
+      if (Array.isArray(data)) {
+        const valid = data.filter(t => 
+          (t.status || '').trim().toUpperCase() === 'APPROVED' || 
+          (t.name && t.name.trim() !== '' && t.utr_number && t.utr_number.trim() !== '')
+        );
+        return cleanRecord(valid);
+      }
     } catch (e1) {
       console.warn('Supabase getAllTickets order=id.desc failed, trying plain query:', e1.message);
       try {
         let data = await supabaseFetch(`tickets?select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time`);
-        if (Array.isArray(data)) return cleanRecord(data);
+        if (Array.isArray(data)) {
+          const valid = data.filter(t => 
+            (t.status || '').trim().toUpperCase() === 'APPROVED' || 
+            (t.name && t.name.trim() !== '' && t.utr_number && t.utr_number.trim() !== '')
+          );
+          return cleanRecord(valid);
+        }
       } catch (e2) {
         console.error('Supabase getAllTickets plain query error:', e2.message);
       }

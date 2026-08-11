@@ -1578,6 +1578,43 @@ img, canvas, svg, video, iframe {
     -webkit-overflow-scrolling: touch !important;
     max-width: 100% !important;
   }
+
+  /* Responsive Desktop vs Mobile Card Views for Admin */
+  .desktop-only-table {
+    display: none !important;
+  }
+
+  .mobile-only-cards {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .admin-nav-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .admin-nav-tabs .btn {
+    width: 100% !important;
+    font-size: 0.78rem !important;
+    padding: 10px 6px !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+    line-height: 1.2 !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-only-table {
+    display: block !important;
+  }
+
+  .mobile-only-cards {
+    display: none !important;
+  }
 }
 
 
