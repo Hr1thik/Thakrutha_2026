@@ -90,6 +90,26 @@
     // Export CSV
     document.getElementById('exportCsvBtn')?.addEventListener('click', () => exportAttendeesCsv());
 
+    // Clear All Pending Button
+    document.getElementById('clearAllPendingBtn')?.addEventListener('click', async () => {
+      if (!confirm('⚠️ Are you sure you want to delete all test pending approval records from the database?')) return;
+      try {
+        const res = await fetch('/api/admin/clear-all-pending', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentAdmin.username,
+            password: currentAdmin.password
+          })
+        });
+        const data = await res.json();
+        alert(data.message || 'Pending list cleared successfully!');
+        reloadDashboardData();
+      } catch (e) {
+        alert('Error clearing pending list: ' + e.message);
+      }
+    });
+
     // Direct Ticket Creation Form Submit (For Cash / Offline / Non-GPay Attendees)
     document.getElementById('createDirectTicketForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();

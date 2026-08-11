@@ -220,11 +220,15 @@ async function getStats() {
 
   if (useSupabase) {
     try {
-      const all = await supabaseFetch(`tickets?select=id,name,status,checked_in,request_code,ticket_code`);
+      const all = await supabaseFetch(`tickets?select=id,name,status,checked_in,request_code,ticket_code,utr_number`);
       if (Array.isArray(all)) {
         const validTickets = all.filter(t => (t.name && t.name.trim() !== '') || (t.request_code && t.request_code.trim() !== ''));
         approvedCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'APPROVED').length;
-        pendingCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'PENDING').length;
+        
+        // Match exact pending list calculation
+        const pendingList = await getPendingSubmissions();
+        pendingCount = pendingList.length;
+
         checkedInCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'APPROVED' && Number(t.checked_in) === 1).length;
 
         const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
@@ -703,6 +707,31 @@ async function purgeJunkPending(adminUsername) {
   return { success: false, message: 'Datastore unavailable' };
 }
 
+async function clearAllPending(adminUsername) {
+  if (useSupabase) {
+    try {
+      await supabaseFetch(`tickets?status=eq.PENDING`, {
+        method: 'DELETE'
+      });
+      return { success: true, message: `All test pending records successfully deleted by ${adminUsername}.` };
+    } catch (e) {
+      console.error('Supabase clearAllPending error:', e.message);
+      return { success: false, message: 'Delete failed: ' + e.message };
+    }
+  }
+
+  if (db) {
+    try {
+      const stmt = db.prepare("DELETE FROM tickets WHERE status = 'PENDING'");
+      const info = stmt.run();
+      return { success: true, message: `Deleted ${info.changes} pending records by ${adminUsername}.` };
+    } catch (e) {
+      return { success: false, message: 'Delete error: ' + e.message };
+    }
+  }
+  return { success: false, message: 'Datastore unavailable' };
+}
+
 module.exports = {
   getSetting,
   setSetting,
@@ -718,5 +747,6 @@ module.exports = {
   searchTickets,
   verifyGateTicket,
   deleteTicket,
-  purgeJunkPending
+  purgeJunkPending,
+  clearAllPending
 };

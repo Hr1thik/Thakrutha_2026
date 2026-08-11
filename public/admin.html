@@ -90,9 +90,14 @@
             <h3 style="font-size: 1.5rem; color: #FFF;">Pending UPI Payment Approvals</h3>
             <p style="font-size: 0.9rem; color: var(--text-secondary);">Cross-check attendee 12-digit UTR numbers with your bank account before approving.</p>
           </div>
-          <button class="btn btn-outline btn-sm" id="refreshPendingBtn">
-            <i data-lucide="refresh-cw"></i> Refresh List
-          </button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-outline btn-sm" id="refreshPendingBtn">
+              <i data-lucide="refresh-cw"></i> Refresh List
+            </button>
+            <button class="btn btn-outline btn-sm" id="clearAllPendingBtn" style="border-color: #EF4444; color: #FCA5A5;">
+              🧹 Clear All Pending
+            </button>
+          </div>
         </div>
 
         <div style="overflow-x: auto; border: 1px solid var(--border-gold); border-radius: var(--radius-md);">
