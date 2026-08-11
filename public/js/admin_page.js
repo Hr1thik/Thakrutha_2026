@@ -286,11 +286,9 @@
             <td style="padding: 14px; font-size: 0.88rem; color: var(--text-secondary);">${item.phone}<br>${item.email}</td>
             <td style="padding: 14px; font-family: monospace; font-size: 1.1rem; color: var(--gold-primary); font-weight: 800;">${item.utr_number}</td>
             <td style="padding: 14px; text-align: center;">
-              ${item.payment_screenshot ? `
-                <button class="btn btn-secondary btn-sm btn-view-screenshot" data-img="${encodeURIComponent(item.payment_screenshot)}" data-name="${item.name}" data-code="${item.request_code}" style="padding: 6px 12px; font-size: 0.82rem;">
-                  🖼️ View Screenshot
-                </button>
-              ` : '<span style="color: var(--text-muted); font-size: 0.8rem;">No Image</span>'}
+              <button class="btn btn-secondary btn-sm btn-view-screenshot" data-name="${item.name}" data-code="${item.request_code}" style="padding: 6px 12px; font-size: 0.82rem;">
+                🖼️ View Proof
+              </button>
             </td>
             <td style="padding: 14px; text-align: center;">
               <button class="btn btn-primary btn-sm btn-approve-utr" data-code="${item.request_code}" style="padding: 8px 16px; font-size: 0.85rem; margin-right: 8px;">
@@ -304,8 +302,7 @@
         `).join('');
 
         document.querySelectorAll('.btn-view-screenshot').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const rawImg = decodeURIComponent(e.currentTarget.getAttribute('data-img'));
+          btn.addEventListener('click', async (e) => {
             const name = e.currentTarget.getAttribute('data-name');
             const code = e.currentTarget.getAttribute('data-code');
 
@@ -313,10 +310,24 @@
             const imgEl = document.getElementById('proofModalImg');
             const subText = document.getElementById('proofModalSubText');
 
-            if (imgEl && modal) {
-              imgEl.src = rawImg;
-              if (subText) subText.textContent = `Payment Receipt Proof for ${name} (${code})`;
+            if (modal && imgEl) {
+              if (subText) subText.textContent = `⌛ Loading Payment Receipt Proof for ${name} (${code})...`;
+              imgEl.src = '';
               modal.classList.add('active');
+
+              try {
+                const res = await fetch(`/api/tickets/lookup?q=${encodeURIComponent(code)}`);
+                const data = await res.json();
+                if (data.tickets && data.tickets[0] && data.tickets[0].payment_screenshot) {
+                  imgEl.src = data.tickets[0].payment_screenshot;
+                  if (subText) subText.textContent = `Payment Receipt Proof for ${name} (${code})`;
+                } else {
+                  alert('No screenshot proof found for this submission.');
+                  modal.classList.remove('active');
+                }
+              } catch (err) {
+                alert('Error fetching payment screenshot: ' + err.message);
+              }
             }
           });
         });
