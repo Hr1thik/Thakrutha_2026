@@ -44,7 +44,7 @@ const server = http.createServer(async (req, res) => {
         subtitle: 'Grand Onam Celebration 2026',
         date: 'August 23, 2026',
         time: '09:00 AM - 07:00 PM',
-        registrationDeadline: 'August 20, 2026',
+        registrationDeadline: 'August 18, 2026',
         venueStatus: 'Venue Will Be Revealed Soon',
         rules: ['Strictly stag entry only', 'No Drugs and Alcohol Allowed'],
         passPrice: 1100,
@@ -366,6 +366,30 @@ const server = http.createServer(async (req, res) => {
         } catch (err) {
           res.writeHead(500);
           res.end(JSON.stringify({ error: 'Delete failed: ' + err.message }));
+        }
+      });
+      return;
+    }
+
+    // 15. Admin Purge Junk Pending Records
+    if (pathname === '/api/admin/purge-junk' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const { username, password } = JSON.parse(body);
+          if (!db.isValidAdmin(username, password)) {
+            res.writeHead(403);
+            res.end(JSON.stringify({ success: false, message: 'Invalid Admin Credentials!' }));
+            return;
+          }
+
+          const result = await db.purgeJunkPending(username);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: 'Purge failed: ' + err.message }));
         }
       });
       return;

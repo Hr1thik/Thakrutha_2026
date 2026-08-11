@@ -220,11 +220,12 @@ async function getStats() {
 
   if (useSupabase) {
     try {
-      const all = await supabaseFetch(`tickets?select=id,status,checked_in`);
+      const all = await supabaseFetch(`tickets?select=id,name,status,checked_in,request_code,ticket_code`);
       if (Array.isArray(all)) {
-        approvedCount = all.filter(t => t.status === 'APPROVED').length;
-        pendingCount = all.filter(t => t.status === 'PENDING').length;
-        checkedInCount = all.filter(t => t.status === 'APPROVED' && Number(t.checked_in) === 1).length;
+        const validTickets = all.filter(t => (t.name && t.name.trim() !== '') || (t.request_code && t.request_code.trim() !== ''));
+        approvedCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'APPROVED').length;
+        pendingCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'PENDING').length;
+        checkedInCount = validTickets.filter(t => (t.status || '').trim().toUpperCase() === 'APPROVED' && Number(t.checked_in) === 1).length;
 
         const ticketsRemaining = Math.max(0, TOTAL_CAPACITY - approvedCount);
         const remainingPercentage = Math.round((ticketsRemaining / TOTAL_CAPACITY) * 100);
@@ -439,7 +440,10 @@ async function getPendingSubmissions() {
     try {
       let data = await supabaseFetch(`tickets?select=*&order=id.desc`);
       if (Array.isArray(data)) {
-        const pending = data.filter(t => (t.status || '').toUpperCase() === 'PENDING');
+        const pending = data.filter(t => 
+          (t.status || '').trim().toUpperCase() === 'PENDING' &&
+          (t.name && t.name.trim() !== '')
+        );
         return cleanRecord(pending);
       }
     } catch (e1) {
@@ -447,7 +451,10 @@ async function getPendingSubmissions() {
       try {
         let data = await supabaseFetch(`tickets?select=*`);
         if (Array.isArray(data)) {
-          const pending = data.filter(t => (t.status || '').toUpperCase() === 'PENDING');
+          const pending = data.filter(t => 
+            (t.status || '').trim().toUpperCase() === 'PENDING' &&
+            (t.name && t.name.trim() !== '')
+          );
           return cleanRecord(pending);
         }
       } catch (e2) {
@@ -671,6 +678,31 @@ async function deleteTicket(code, adminUsername) {
   return { success: false, message: `Ticket "${c}" not found.` };
 }
 
+async function purgeJunkPending(adminUsername) {
+  if (useSupabase) {
+    try {
+      await supabaseFetch(`tickets?status=eq.PENDING&or=(name.is.null,name.eq.,request_code.is.null)`, {
+        method: 'DELETE'
+      });
+      return { success: true, message: `Orphaned junk pending records cleaned up by ${adminUsername}.` };
+    } catch (e) {
+      console.error('Supabase purgeJunkPending error:', e.message);
+      return { success: false, message: 'Purge failed: ' + e.message };
+    }
+  }
+
+  if (db) {
+    try {
+      const stmt = db.prepare("DELETE FROM tickets WHERE status = 'PENDING' AND (name IS NULL OR name = '' OR request_code IS NULL)");
+      const info = stmt.run();
+      return { success: true, message: `Cleaned ${info.changes} junk pending records by ${adminUsername}.` };
+    } catch (e) {
+      return { success: false, message: 'Purge error: ' + e.message };
+    }
+  }
+  return { success: false, message: 'Datastore unavailable' };
+}
+
 module.exports = {
   getSetting,
   setSetting,
@@ -685,5 +717,6 @@ module.exports = {
   rejectPayment,
   searchTickets,
   verifyGateTicket,
-  deleteTicket
+  deleteTicket,
+  purgeJunkPending
 };
