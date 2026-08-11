@@ -211,7 +211,30 @@ const server = http.createServer(async (req, res) => {
             return;
           }
 
-          if (data.utrNumber.trim().length < 6) {
+          // Strict Validation & Spam Bot Rejection Shield
+          const name = (data.name || '').trim();
+          if (name.length < 2 || /<|>|script|alert|onerror|img|http|test|aaa|tes/i.test(name)) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Please enter a valid full name.' }));
+            return;
+          }
+
+          const phone = (data.phone || '').trim().replace(/\D/g, '');
+          if (phone.length !== 10 || /^(\d)\1{9}$/.test(phone) || phone === '9876543210' || phone === '1234567890') {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Please enter a valid 10-digit mobile number.' }));
+            return;
+          }
+
+          const email = (data.email || '').trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.includes('test.com') || email.includes('xss') || email.startsWith('@')) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Please enter a valid email address.' }));
+            return;
+          }
+
+          const utr = (data.utrNumber || '').trim().replace(/\D/g, '');
+          if (utr.length < 10 || utr === '987654321234' || utr === '123456789012' || /^(\d)\1{11}$/.test(utr)) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'Please enter a valid 12-digit UPI Transaction / UTR Reference Number.' }));
             return;

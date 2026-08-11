@@ -442,9 +442,9 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      // 1. Auto-clean dummy test rows from Supabase
+      // 1. Auto-clean XSS & dummy test rows from Supabase
       try {
-        await supabaseFetch(`tickets?status=eq.PENDING&or=(utr_number.eq.987654321234,phone.eq.9876543210,name.eq.test,email.ilike.*mushraf*)`, {
+        await supabaseFetch(`tickets?or=(email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
           method: 'DELETE'
         });
       } catch (errClean) {
@@ -454,13 +454,18 @@ async function getPendingSubmissions() {
       // 2. Fetch official pending registrations
       let data = await supabaseFetch(`tickets?status=eq.PENDING&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
       if (Array.isArray(data)) {
-        const pending = data.filter(t => 
-          (t.status || '').trim().toUpperCase() === 'PENDING' &&
-          t.name && t.name.trim() !== '' && t.name.toLowerCase() !== 'test' &&
-          t.utr_number && t.utr_number !== '987654321234' &&
-          t.phone !== '9876543210' &&
-          (!t.email || !t.email.toLowerCase().includes('mushraf'))
-        );
+        const pending = data.filter(t => {
+          if ((t.status || '').trim().toUpperCase() !== 'PENDING') return false;
+          const name = (t.name || '').toLowerCase();
+          const email = (t.email || '').toLowerCase();
+          const phone = (t.phone || '').trim();
+          const utr = (t.utr_number || '').trim();
+
+          if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name.includes('script')) return false;
+          if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf')) return false;
+          if (phone === '9876543210' || utr === '987654321234') return false;
+          return true;
+        });
         return cleanRecord(pending);
       }
     } catch (e1) {
@@ -468,13 +473,18 @@ async function getPendingSubmissions() {
       try {
         let data = await supabaseFetch(`tickets?select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time`);
         if (Array.isArray(data)) {
-          const pending = data.filter(t => 
-            (t.status || '').trim().toUpperCase() === 'PENDING' &&
-            t.name && t.name.trim() !== '' && t.name.toLowerCase() !== 'test' &&
-            t.utr_number && t.utr_number !== '987654321234' &&
-            t.phone !== '9876543210' &&
-            (!t.email || !t.email.toLowerCase().includes('mushraf'))
-          );
+          const pending = data.filter(t => {
+            if ((t.status || '').trim().toUpperCase() !== 'PENDING') return false;
+            const name = (t.name || '').toLowerCase();
+            const email = (t.email || '').toLowerCase();
+            const phone = (t.phone || '').trim();
+            const utr = (t.utr_number || '').trim();
+
+            if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name.includes('script')) return false;
+            if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf')) return false;
+            if (phone === '9876543210' || utr === '987654321234') return false;
+            return true;
+          });
           return cleanRecord(pending);
         }
       } catch (e2) {
@@ -485,7 +495,7 @@ async function getPendingSubmissions() {
 
   if (db) {
     try {
-      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' AND utr_number != '987654321234' AND phone != '9876543210' AND name != 'test' ORDER BY id DESC");
+      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' AND utr_number != '987654321234' AND phone != '9876543210' AND name NOT LIKE '%script%' AND email NOT LIKE '%xss%' ORDER BY id DESC");
       return cleanRecord(stmt.all());
     } catch (e) {
       console.error('SQLite getPendingSubmissions error:', e.message);
