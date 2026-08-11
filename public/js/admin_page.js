@@ -90,11 +90,11 @@
     // Export CSV
     document.getElementById('exportCsvBtn')?.addEventListener('click', () => exportAttendeesCsv());
 
-    // Clear All Pending Button
+    // Clear Junk Test Records Button (Safely protects real attendee submissions)
     document.getElementById('clearAllPendingBtn')?.addEventListener('click', async () => {
-      if (!confirm('⚠️ Are you sure you want to delete all test pending approval records from the database?')) return;
+      if (!confirm('⚠️ Clean up empty test/junk pending records? (Real attendee submissions with names/phones will NOT be deleted)')) return;
       try {
-        const res = await fetch('/api/admin/clear-all-pending', {
+        const res = await fetch('/api/admin/purge-junk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -103,10 +103,10 @@
           })
         });
         const data = await res.json();
-        alert(data.message || 'Pending list cleared successfully!');
+        alert(data.message || 'Junk test records cleared successfully!');
         reloadDashboardData();
       } catch (e) {
-        alert('Error clearing pending list: ' + e.message);
+        alert('Error clearing junk records: ' + e.message);
       }
     });
 
