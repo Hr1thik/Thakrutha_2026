@@ -442,12 +442,22 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      let data = await supabaseFetch(`tickets?status=eq.PENDING&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
+      // 1. Auto-clean non-official test rows from Supabase
+      try {
+        await supabaseFetch(`tickets?status=eq.PENDING&request_code=not.ilike.REQ-2026-*`, {
+          method: 'DELETE'
+        });
+      } catch (errClean) {
+        // Continue if clean filter warning
+      }
+
+      // 2. Fetch official pending registrations (request_code starts with REQ-2026-)
+      let data = await supabaseFetch(`tickets?status=eq.PENDING&request_code=ilike.REQ-2026-*&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
       if (Array.isArray(data)) {
         const pending = data.filter(t => 
           (t.status || '').trim().toUpperCase() === 'PENDING' &&
-          (t.name && t.name.trim() !== '' && !t.name.toLowerCase().startsWith('test')) &&
-          (t.utr_number && t.utr_number.trim() !== '')
+          t.name && t.name.trim() !== '' &&
+          t.request_code && t.request_code.startsWith('REQ-2026-')
         );
         return cleanRecord(pending);
       }
@@ -458,8 +468,8 @@ async function getPendingSubmissions() {
         if (Array.isArray(data)) {
           const pending = data.filter(t => 
             (t.status || '').trim().toUpperCase() === 'PENDING' &&
-            (t.name && t.name.trim() !== '' && !t.name.toLowerCase().startsWith('test')) &&
-            (t.utr_number && t.utr_number.trim() !== '')
+            t.name && t.name.trim() !== '' &&
+            t.request_code && t.request_code.startsWith('REQ-2026-')
           );
           return cleanRecord(pending);
         }
@@ -471,7 +481,7 @@ async function getPendingSubmissions() {
 
   if (db) {
     try {
-      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' AND utr_number IS NOT NULL AND utr_number != '' ORDER BY id DESC");
+      const stmt = db.prepare("SELECT id, request_code, ticket_code, name, email, phone, emergency_contact, utr_number, status, submitted_at, approved_at, approved_by, checked_in, check_in_time FROM tickets WHERE status = 'PENDING' AND request_code LIKE 'REQ-2026-%' ORDER BY id DESC");
       return cleanRecord(stmt.all());
     } catch (e) {
       console.error('SQLite getPendingSubmissions error:', e.message);
