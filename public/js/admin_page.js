@@ -579,8 +579,10 @@
       fps: 15,
       qrbox: (w, h) => {
         const minDim = Math.min(w, h);
-        return { width: Math.floor(minDim * 0.75), height: Math.floor(minDim * 0.75) };
-      }
+        const size = Math.min(260, Math.floor(minDim * 0.75));
+        return { width: size, height: size };
+      },
+      aspectRatio: 1.0
     };
 
     const onScanSuccess = async (qrCodeText) => {

@@ -11,28 +11,28 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/js/vendor/html5-qrcode.min.js"></script>
 </head>
-<body style="background-color: var(--bg-dark); color: var(--text-primary); padding-top: 100px;">
+<body class="admin-body" style="background-color: var(--bg-dark); color: var(--text-primary); padding-top: 80px;">
 
   <!-- Admin Header / Navbar -->
-  <header class="navbar">
-    <div class="container navbar-container">
-      <a href="/" class="logo-brand">
-        <div class="logo-icon">
+  <header class="navbar admin-navbar">
+    <div class="container navbar-container" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+      <a href="/" class="logo-brand" style="gap: 8px;">
+        <div class="logo-icon" style="width: 34px; height: 34px; font-size: 1rem;">
           <i data-lucide="shield-check"></i>
         </div>
         <div class="logo-text-group">
-          <span class="logo-title">THAKRUTHA</span>
-          <span class="logo-subtitle">Organizer Admin Portal</span>
+          <span class="logo-title" style="font-size: 1.1rem;">THAKRUTHA</span>
+          <span class="logo-subtitle" style="font-size: 0.7rem;">Admin Portal</span>
         </div>
       </a>
 
-      <div class="nav-actions">
-        <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid var(--border-gold); padding: 8px 16px; border-radius: var(--radius-full); font-size: 0.88rem; font-weight: 700; color: var(--gold-light);">
-          👤 Logged in as: <span id="adminSessionName" style="color: var(--gold-primary); font-family: monospace;">admin1</span>
+      <div class="nav-actions admin-nav-actions" style="display: flex; align-items: center; gap: 8px;">
+        <div class="admin-user-badge" style="background: rgba(255, 215, 0, 0.1); border: 1px solid var(--border-gold); padding: 6px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; color: var(--gold-light); white-space: nowrap;">
+          👤 <span id="adminSessionName" style="color: var(--gold-primary); font-family: monospace;">admin1</span>
         </div>
 
-        <button class="btn btn-outline btn-sm" id="adminLogoutPageBtn">
-          <i data-lucide="log-out"></i> Logout
+        <button class="btn btn-outline btn-sm" id="adminLogoutPageBtn" style="border-color: #EF4444; color: #FCA5A5; padding: 6px 12px; font-size: 0.82rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">
+          <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> <span>Logout</span>
         </button>
       </div>
     </div>
@@ -169,17 +169,16 @@
     <!-- TAB 3: REGISTERED ATTENDEES & GATE SCANNER -->
     <div id="panelAttendees" style="display: none;">
       <!-- Real-Time Phone Camera Gate Scanner -->
-      <div style="background: rgba(6, 18, 14, 0.95); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 32px; box-shadow: var(--shadow-dark);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-          <div>
-            <h4 style="color: var(--gold-light); font-size: 1.3rem; margin-bottom: 4px;">🎟️ Phone Camera Gate QR Scanner</h4>
-            <p style="font-size: 0.88rem; color: var(--text-secondary);">Point your phone's camera at an attendee's E-Ticket QR Code to verify entry instantly.</p>
-          </div>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-primary" id="startCameraBtn">
+      <div style="background: rgba(6, 18, 14, 0.95); border: 1.5px solid var(--border-gold); border-radius: var(--radius-lg); padding: 20px 16px; margin-bottom: 24px; box-shadow: var(--shadow-dark); box-sizing: border-box; overflow: hidden;">
+        <div style="margin-bottom: 16px; text-align: left;">
+          <h4 style="color: var(--gold-light); font-size: 1.2rem; margin-bottom: 4px;">🎟️ Phone Camera Gate QR Scanner</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">Point your phone camera at an attendee's E-Ticket QR Code to verify entry instantly.</p>
+          
+          <div style="display: flex; gap: 10px; flex-direction: column; width: 100%;">
+            <button class="btn btn-primary" id="startCameraBtn" style="width: 100%; justify-content: center; padding: 14px; font-weight: 800;">
               <i data-lucide="camera"></i> <span>📷 Start Camera Scanner</span>
             </button>
-            <label class="btn btn-outline" style="cursor: pointer; margin: 0; display: inline-flex; align-items: center; gap: 6px;">
+            <label class="btn btn-outline" style="width: 100%; justify-content: center; cursor: pointer; margin: 0; padding: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i data-lucide="image"></i> <span>🖼️ Upload QR Image</span>
               <input type="file" id="uploadQrFileInput" accept="image/*" style="display: none;">
             </label>
@@ -187,16 +186,16 @@
         </div>
 
         <!-- Live Camera Viewfinder Box -->
-        <div id="cameraScannerWrapper" style="display: none; max-width: 480px; margin: 0 auto 20px auto; background: #000; border: 2px solid var(--gold-primary); border-radius: var(--radius-md); overflow: hidden; position: relative;">
-          <div id="interactiveCameraReader" style="width: 100%; min-height: 280px;"></div>
-          <button class="btn btn-secondary btn-sm" id="stopCameraBtn" style="position: absolute; top: 10px; right: 10px; z-index: 10;">Stop Camera</button>
+        <div id="cameraScannerWrapper" style="display: none; width: 100%; max-width: 440px; margin: 0 auto 16px auto; background: #000; border: 2px solid var(--gold-primary); border-radius: var(--radius-md); overflow: hidden; position: relative; box-sizing: border-box;">
+          <div id="interactiveCameraReader" style="width: 100%; min-height: 250px; display: flex; justify-content: center; align-items: center; background: #000; overflow: hidden;"></div>
+          <button class="btn btn-secondary btn-sm" id="stopCameraBtn" style="position: absolute; top: 8px; right: 8px; z-index: 20; padding: 6px 12px; font-size: 0.8rem; background: rgba(0,0,0,0.85); border: 1px solid var(--gold-primary);">Stop Camera</button>
         </div>
 
-        <div class="search-input-group" style="margin-top: 14px;">
-          <input type="text" class="form-control" id="scanCodeInput" placeholder="Scan or enter Ticket Code (e.g. TK-2026-8942)...">
-          <button class="btn btn-primary" id="verifyScanBtn">Verify & Grant Entry</button>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+          <input type="text" class="form-control" id="scanCodeInput" placeholder="Scan or enter Ticket Code (e.g. TK-2026-8942)..." style="width: 100%; box-sizing: border-box;">
+          <button class="btn btn-primary" id="verifyScanBtn" style="width: 100%; padding: 14px; justify-content: center; font-weight: 800;">Verify & Grant Entry</button>
         </div>
-        <div id="scanResultNotice" style="margin-top: 14px; font-weight: 700;"></div>
+        <div id="scanResultNotice" style="margin-top: 14px; font-weight: 700; text-align: center;"></div>
       </div>
 
       <!-- Attendees Table -->
@@ -242,7 +241,7 @@
         </div>
 
         <form id="createDirectTicketForm">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
             <div class="form-group">
               <label class="form-label" for="directName">Full Name *</label>
               <input type="text" class="form-control" id="directName" required placeholder="e.g. Suresh Kumar">

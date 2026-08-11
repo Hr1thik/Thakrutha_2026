@@ -1520,4 +1520,64 @@ img, canvas, svg, video, iframe {
   }
 }
 
+/* -------------------------------------------------------------
+   MOBILE PHONE ADMIN PORTAL & CAMERA SCANNER OPTIMIZATIONS
+   ------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Always show admin logout & user badge on mobile phone navbar */
+  .admin-body .nav-actions,
+  .admin-nav-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .admin-body .admin-user-badge {
+    padding: 4px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .admin-body #adminLogoutPageBtn {
+    padding: 6px 10px !important;
+    font-size: 0.78rem !important;
+    min-height: 36px !important;
+  }
+
+  /* Camera Scanner Viewfinder Alignment for Mobile */
+  #cameraScannerWrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  #interactiveCameraReader {
+    width: 100% !important;
+    min-height: 240px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: #000 !important;
+  }
+
+  #interactiveCameraReader video {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 350px !important;
+    object-fit: cover !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  #interactiveCameraReader canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Smooth Touch Scroll for Tables on Mobile */
+  div[style*="overflow-x: auto"] {
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+  }
+}
+
 
