@@ -442,9 +442,9 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      // 1. Auto-clean XSS & dummy test rows from Supabase
+      // 1. Auto-clean XSS, dictionary bot & dummy test rows from Supabase
       try {
-        await supabaseFetch(`tickets?or=(email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
+        await supabaseFetch(`tickets?or=(email.eq.@gmail.com,email.ilike.@gmail.com,email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
           method: 'DELETE'
         });
       } catch (errClean) {
@@ -462,7 +462,7 @@ async function getPendingSubmissions() {
           const utr = (t.utr_number || '').trim();
 
           if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name.includes('script')) return false;
-          if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf')) return false;
+          if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf') || email === '@gmail.com' || email.startsWith('@')) return false;
           if (phone === '9876543210' || utr === '987654321234') return false;
           return true;
         });
