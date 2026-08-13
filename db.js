@@ -442,9 +442,9 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      // 1. Auto-clean XSS, mushraf bot & dummy test rows from Supabase
+      // 1. Auto-clean XSS, bot & dummy test rows from Supabase
       try {
-        await supabaseFetch(`tickets?or=(email.ilike.*mushraf*,email.eq.@gmail.com,email.ilike.@gmail.com,email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
+        await supabaseFetch(`tickets?or=(phone.eq.9988776655,utr_number.eq.9876543210,email.ilike.*mushraf*,email.eq.@gmail.com,email.ilike.@gmail.com,email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
           method: 'DELETE'
         });
       } catch (errClean) {
@@ -465,14 +465,17 @@ async function getPendingSubmissions() {
           // Real attendee submissions strictly start with REQ-2026-
           if (!reqCode.startsWith('REQ-2026-')) return false;
 
+          // Real bank UTR numbers are strictly 12 digits long
+          if (utr.length !== 12 || utr === '987654321234' || utr === '123456789012' || utr === '9876543210') return false;
+
+          // Exclude fake phone numbers
+          if (phone === '9988776655' || phone === '9876543210' || phone === '1234567890') return false;
+
           // Exclude dictionary bot & test names
           if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name === 'admin' || name === 'access' || name === 'academic' || name === 'adrian' || name === 'academia' || name === 'ada' || name === 'abc' || name.includes('script') || name.includes('img') || name.includes('onerror')) return false;
 
           // Exclude test emails
           if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf') || email === '@gmail.com' || email === 'abc@gmail.com' || email === 'test@gmail.com' || email.startsWith('@')) return false;
-
-          // Exclude fake test UTRs & phone numbers
-          if (phone === '9876543210' || phone === '1234567890' || utr === '987654321234' || utr === '123456789012') return false;
 
           return true;
         });
