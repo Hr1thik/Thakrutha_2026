@@ -452,7 +452,7 @@ async function getPendingSubmissions() {
       }
 
       // 2. Fetch official pending registrations
-      let data = await supabaseFetch(`tickets?status=eq.PENDING&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
+      let data = await supabaseFetch(`tickets?status=eq.PENDING&request_code=ilike.REQ-2026-*&select=id,request_code,ticket_code,name,email,phone,emergency_contact,utr_number,status,submitted_at,approved_at,approved_by,checked_in,check_in_time&order=id.desc`);
       if (Array.isArray(data)) {
         const pending = data.filter(t => {
           if ((t.status || '').trim().toUpperCase() !== 'PENDING') return false;
@@ -460,10 +460,20 @@ async function getPendingSubmissions() {
           const email = (t.email || '').toLowerCase();
           const phone = (t.phone || '').trim();
           const utr = (t.utr_number || '').trim();
+          const reqCode = (t.request_code || '').trim();
 
-          if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name.includes('script')) return false;
-          if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf') || email === '@gmail.com' || email.startsWith('@')) return false;
-          if (phone === '9876543210' || utr === '987654321234') return false;
+          // Real attendee submissions strictly start with REQ-2026-
+          if (!reqCode.startsWith('REQ-2026-')) return false;
+
+          // Exclude dictionary bot & test names
+          if (!name || name === 'test' || name === 'tes' || name === 'aaa' || name === 'adrianna' || name === 'admin' || name === 'access' || name === 'academic' || name === 'adrian' || name === 'academia' || name === 'ada' || name === 'abc' || name.includes('script') || name.includes('img') || name.includes('onerror')) return false;
+
+          // Exclude test emails
+          if (email.includes('xss') || email.endsWith('@test.com') || email.includes('mushraf') || email === '@gmail.com' || email === 'abc@gmail.com' || email === 'test@gmail.com' || email.startsWith('@')) return false;
+
+          // Exclude fake test UTRs & phone numbers
+          if (phone === '9876543210' || phone === '1234567890' || utr === '987654321234' || utr === '123456789012') return false;
+
           return true;
         });
         return cleanRecord(pending);
