@@ -46,9 +46,6 @@
       <button class="btn btn-outline" id="downloadPngBtn" style="width: 100%; max-width: 400px; padding: 14px; font-size: 1rem;">
         🖼️ Download Ticket as Image
       </button>
-      <button class="btn btn-secondary" id="shareWhatsappBtn" style="width: 100%; max-width: 400px; padding: 14px; font-size: 1rem; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: #fff; border: none; border-radius: var(--radius-md); font-weight: 700; cursor: pointer;">
-        📲 Share Ticket via WhatsApp
-      </button>
     </div>
 
   </div>
@@ -161,16 +158,6 @@
       document.getElementById('downloadPngBtn').addEventListener('click', () => {
         if (!currentTicket) return;
         downloadTicketAsImage(currentTicket);
-      });
-
-      document.getElementById('shareWhatsappBtn')?.addEventListener('click', () => {
-        if (!currentTicket) return;
-        const isApproved = currentTicket.status === 'APPROVED';
-        const passCode = isApproved ? currentTicket.ticket_code : currentTicket.request_code;
-        const ticketUrl = `${window.location.origin}/ticket.html?code=${encodeURIComponent(passCode)}`;
-        const text = `🎟️ *THAKRUTHA 2026 Onam Festival Pass*\n👤 Attendee: ${currentTicket.name}\n🎫 Pass Code: ${passCode}\n📅 Date: Aug 23, 2026 (09:00 AM - 07:00 PM)\nSTATUS: ${isApproved ? '✅ APPROVED' : '⏳ PENDING APPROVAL'}\n\n🔗 View & Download Official Ticket Pass:\n${ticketUrl}`;
-        const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-        window.open(waUrl, '_blank');
       });
 
       function downloadTicketAsPdf(ticket) {
