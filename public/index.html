@@ -12,6 +12,9 @@
 
   <!-- Lucide Icons, QR Code & jsPDF Generator -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <!-- Cloudflare Invisible Turnstile CAPTCHA -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="/js/vendor/qrcode_gen.js"></script>
   <script src="/js/vendor/qrcode.min.js"></script>
   <script src="/js/vendor/jspdf.umd.min.js"></script>
@@ -495,6 +498,9 @@
               </label>
             </div>
           </div>
+
+          <!-- Cloudflare Invisible Turnstile CAPTCHA Widget -->
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAAx_123456789" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
 
           <button type="submit" class="btn btn-primary" id="btnSubmitForm" style="width: 100%; margin-top: 26px; padding: 16px; min-height: 52px; font-size: 1.05rem; justify-content: center;">
             Submit Pass Request & Payment Proof <i data-lucide="check-circle"></i>
