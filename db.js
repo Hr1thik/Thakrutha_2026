@@ -528,13 +528,13 @@ async function ensureGenuineAttendeesExist() {
         body: JSON.stringify({
           name: 'Krishna P Kishore',
           email: 'krishnapkishore004@gmail.com',
-          phone: '9876543210',
-          emergency_contact: '9876543210',
-          pass_type: 'THAKRUTHA Stag Festival Pass',
+          phone: '9037423085',
+          emergency_contact: '9037423085',
+          pass_type: 'THAKRUTHA Stag Pass',
           amount: 1100,
-          request_code: 'REQ-2026-1001',
-          ticket_code: 'TK-2026-1001',
-          utr_number: '987654321012',
+          request_code: 'REQ-2026-1903',
+          ticket_code: 'TK-2026-1903',
+          utr_number: '9037423085@superyes',
           status: 'APPROVED',
           sadhya_type: '100% Pure Veg',
           submitted_at: new Date().toISOString(),
@@ -543,7 +543,22 @@ async function ensureGenuineAttendeesExist() {
           created_at: new Date().toISOString()
         })
       });
-      console.log('Restored genuine attendee Krishna P Kishore in Supabase.');
+      console.log('Restored genuine attendee Krishna P Kishore with exact phone 9037423085 in Supabase.');
+    } else {
+      const t = existing[0];
+      if (t.phone !== '9037423085' || t.request_code !== 'REQ-2026-1903') {
+        await supabaseFetch(`tickets?id=eq.${t.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            phone: '9037423085',
+            emergency_contact: '9037423085',
+            request_code: 'REQ-2026-1903',
+            ticket_code: 'TK-2026-1903',
+            utr_number: '9037423085@superyes',
+            status: 'APPROVED'
+          })
+        });
+      }
     }
   } catch (err) {
     console.warn('Restore attendee warn:', err.message);
