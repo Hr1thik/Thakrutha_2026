@@ -442,9 +442,9 @@ async function createDirectTicket({ name, email, phone, emergencyContact, adminU
 async function getPendingSubmissions() {
   if (useSupabase) {
     try {
-      // 1. Auto-clean XSS, dictionary bot & dummy test rows from Supabase
+      // 1. Auto-clean XSS, mushraf bot & dummy test rows from Supabase
       try {
-        await supabaseFetch(`tickets?or=(email.eq.@gmail.com,email.ilike.@gmail.com,email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
+        await supabaseFetch(`tickets?or=(email.ilike.*mushraf*,email.eq.@gmail.com,email.ilike.@gmail.com,email.ilike.*@test.com,email.ilike.*xss*,name.ilike.*script*,name.ilike.*onerror*,name.eq.test,name.eq.tes,name.eq.aaa,name.eq.adrianna,phone.eq.9876543210,utr_number.eq.987654321234)`, {
           method: 'DELETE'
         });
       } catch (errClean) {
